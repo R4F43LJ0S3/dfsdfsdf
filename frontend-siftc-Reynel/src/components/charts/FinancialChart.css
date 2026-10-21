@@ -1,0 +1,253 @@
+:root {
+  --azul-noche: #151D33;
+  --azul-acero: #264E7A;
+  --verde-alza: #24A460;
+  --rojo-bajada: #D9534F;
+  --blanco-hueso: #F6F5F3;
+  --texto-gris: #5A6375;
+  --borde-tarjeta: #E2E8F0;
+}
+
+.grafica-wrapper {
+  background-color: var(--blanco-hueso);
+  padding: 32px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.grafica-card-container {
+  background-color: #FFFFFF;
+  border-radius: 24px;
+  padding: 36px 40px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--borde-tarjeta);
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* Cabecera Superior */
+.grafica-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.grafica-breadcrumb {
+  font-size: 13px;
+  color: var(--texto-gris);
+  margin-bottom: 8px;
+}
+
+.grafica-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.grafica-title {
+  color: var(--azul-noche);
+  font-size: 34px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.grafica-ticker {
+  color: var(--texto-gris);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.grafica-badge-finanzas {
+  background-color: #EBF2F7;
+  color: var(--azul-acero);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Lado Derecho: Selector de Entidad y Precio */
+.grafica-header-right-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.grafica-entidad-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grafica-selector-label {
+  font-size: 12px;
+  color: var(--texto-gris);
+  font-weight: 600;
+}
+
+.grafica-select-entidad {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--borde-tarjeta);
+  background-color: #FFFFFF;
+  color: var(--azul-noche);
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  min-width: 220px;
+}
+
+.grafica-price-display-box {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 2px;
+}
+
+.grafica-main-value {
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--azul-noche);
+  line-height: 1;
+}
+
+.grafica-main-change {
+  background-color: rgba(36, 164, 96, 0.1);
+  color: var(--verde-alza);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Fila de Controles (Velas/Línea y Periodos) */
+.grafica-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.grafica-type-toggle {
+  background-color: #E2E8F0;
+  padding: 4px;
+  border-radius: 12px;
+  display: flex;
+  gap: 4px;
+}
+
+.grafica-toggle-btn {
+  border: none;
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--azul-noche);
+  transition: all 0.2s;
+}
+
+.grafica-toggle-btn.active {
+  background-color: var(--azul-noche);
+  color: #FFFFFF;
+}
+
+.grafica-period-group {
+  display: flex;
+  gap: 6px;
+}
+
+.grafica-period-btn {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  background-color: #E2E8F0;
+  color: var(--azul-noche);
+  transition: all 0.2s;
+}
+
+.grafica-period-btn.active {
+  background-color: var(--azul-noche);
+  color: #FFFFFF;
+}
+
+/* Tarjetas Inferiores OHLC en 5 columnas exactas */
+.grafica-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.grafica-stat-card {
+  background-color: #FFFFFF;
+  border: 1.5px solid var(--borde-tarjeta);
+  padding: 18px 22px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.grafica-stat-label {
+  font-size: 13px;
+  color: var(--texto-gris);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.grafica-stat-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.grafica-stat-value {
+  font-size: 22px;
+  color: var(--azul-noche);
+  font-weight: 700;
+}
+
+.grafica-stat-change-tag {
+  color: var(--verde-alza);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.grafica-footer-note {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--texto-gris);
+  text-align: left;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .grafica-cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .grafica-wrapper { padding: 16px; }
+  .grafica-card-container { padding: 20px; }
+  .grafica-title { font-size: 26px; }
+  .grafica-main-value { font-size: 30px; }
+  .grafica-cards-grid { grid-template-columns: 1fr; }
+  /* para que los botones de periodo no se salgan en 360px */
+  .grafica-period-group { flex-wrap: wrap; }
+  .grafica-select-entidad { min-width: 0; width: 100%; }
+}

@@ -1,0 +1,204 @@
+:root {
+  --azul-noche: #151D33;
+  --azul-acero: #264E7A;
+  --verde-alza: #24A460;
+  --blanco-hueso: #F6F5F3;
+  --texto-gris: #5A6375;
+  --borde-input: #264E7A;
+}
+
+.login-container {
+  display: flex;
+  width: 100vw;
+  min-height: 100vh;
+  background-color: var(--blanco-hueso);
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Panel Izquierdo Oscuro */
+.login-panel-left {
+  flex: 1;
+  background-color: var(--azul-noche);
+  color: #FFFFFF;
+  padding: 80px 70px;
+  display: flex;
+  flex-direction: column;
+  justifyContent: center;
+  align-items: flex-start;
+}
+
+.login-tag {
+  color: var(--verde-alza);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 3px;
+  margin-bottom: 36px;
+}
+
+.login-title {
+  font-size: 50px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 48px 0;
+  color: #FFFFFF;
+  text-align: left;
+}
+
+.login-features {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 460px;
+}
+
+.login-feature-item {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.login-feature-num {
+  color: var(--verde-alza);
+  font-weight: 700;
+  font-size: 16px;
+  font-family: monospace;
+}
+
+.login-feature-text {
+  margin: 0;
+  color: #E2E8F0;
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+/* Panel Derecho Claro */
+.login-panel-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  background-color: var(--blanco-hueso);
+}
+
+.login-card {
+  background-color: #FFFFFF;
+  padding: 40px 40px 32px 40px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-logo-img {
+  width: 220px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 20px;
+}
+
+.login-card-title {
+  color: var(--azul-noche);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  text-align: center;
+}
+
+.login-card-subtitle {
+  color: var(--texto-gris);
+  font-size: 14px;
+  margin: 0 0 28px 0;
+  text-align: center;
+}
+
+.login-form {
+  width: 100%;
+}
+
+.login-field-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.login-label {
+  display: block;
+  color: var(--azul-noche);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--borde-input);
+  background-color: #FFFFFF;
+  color: var(--azul-noche);
+  outline: none;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.login-input-password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.login-toggle-eye {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--azul-acero);
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.login-submit-btn {
+  width: 100%;
+  background-color: var(--verde-alza);
+  color: #FFFFFF;
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.login-footer-text {
+  font-size: 12px;
+  color: var(--texto-gris);
+  margin-top: 28px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Diseño Responsive para dispositivos móviles */
+@media (max-width: 900px) {
+  .login-container {
+    flex-direction: column;
+  }
+  .login-panel-left {
+    padding: 40px 24px;
+  }
+  .login-title {
+    font-size: 32px;
+  }
+  .login-panel-right {
+    padding: 24px;
+  }
+}

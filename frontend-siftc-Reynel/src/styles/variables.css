@@ -1,0 +1,75 @@
+/* ==========================================================================
+   SISTEMA DE DISEÑO - ALZA (SIFTC)
+   Datos trazables. Entidades que cotizan.
+   ========================================================================== */
+
+:root {
+  /* --- PALETA DE MARCA OFICIAL ALZA --- */
+  /* 01. Azul noche: Fondos oscuros, encabezados y texto principal */
+  --color-azul-noche: #151D33;
+  --color-azul-noche-rgb: 21, 29, 51;
+  --color-azul-noche-light: #1E294B;
+
+  /* 02. Azul acero: Color primario, botones, enlaces y gráficas */
+  --color-azul-acero: #264E7A;
+  --color-azul-acero-rgb: 38, 78, 122;
+  --color-azul-acero-hover: #1E3D60;
+  --color-azul-acero-light: #EBF2F9;
+
+  /* 03. Verde alza: Acento, subidas (▲), éxito y llamadas a la acción */
+  --color-verde-alza: #24A460;
+  --color-bullish: #187A45;
+  --color-bullish-bg: #E3F4EA;
+  --color-bearish: #B83232;
+  --color-bearish-bg: #FBE8E6;
+  --color-text-muted: #5A6379;
+
+  /* 04. Blanco hueso: Fondo claro, tarjetas y superficies */
+  --color-blanco-hueso: #F6F5F3;
+  --color-blanco-hueso-rgb: 246, 245, 243;
+  --color-blanco-puro: #FFFFFF;
+
+  /* --- SEMÁFORO FINANCIERO Y ALERTAS (HU-FE-09, HU-FE-01) --- */
+  /* Variación alcista / Subida (▲) */
+  --color-bullish: var(--color-verde-alza);
+  --color-bullish-bg: var(--color-verde-alza-bg);
+  --color-bullish-border: #A3E0BF;
+
+  /* Variación bajista / Caída (▼) */
+  --color-bearish: #E03E3E;
+  --color-bearish-rgb: 224, 62, 62;
+  --color-bearish-hover: #BF2D2D;
+  --color-bearish-bg: #FDF0F0;
+  --color-bearish-border: #F5B5B5;
+
+  /* Atención / Neutral (Umbrales amarillos de alerta) */
+  --color-warning: #E5A11A;
+  --color-warning-bg: #FEF8EC;
+  --color-warning-border: #F9DE9E;
+
+  /* --- BORDES, SOMBRAS Y SUPERFICIES --- */
+  --color-border: #E2E0DC;
+  --color-border-dark: #2D3958;
+  --color-text-muted: #6B7280;
+  --color-text-on-dark: #F6F5F3;
+  --color-text-on-light: #151D33;
+
+  /* Sombras suaves de estilo bursátil */
+  --shadow-sm: 0 1px 2px 0 rgba(21, 29, 51, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(21, 29, 51, 0.08), 0 2px 4px -1px rgba(21, 29, 51, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(21, 29, 51, 0.10), 0 4px 6px -2px rgba(21, 29, 51, 0.05);
+
+  /* Bordes redondeados consistentes */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* --- TIPOGRAFÍA --- */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* --- TRANSICIONES --- */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+}
