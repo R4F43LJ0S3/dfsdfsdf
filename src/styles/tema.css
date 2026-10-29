@@ -1,0 +1,100 @@
+/* Tema claro (por defecto) y oscuro. Se activa con <html data-theme="dark">. */
+:root {
+  --superficie: #FFFFFF;
+  --columna-activa: #F1F6FB;
+  --acero-fondo: #264E7A;      /* azul acero para rellenos con texto blanco */
+  --nav-activo: #151D33;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Fondos y textos globales (variables.css) */
+  --color-blanco-hueso: #0E1424;
+  --color-blanco-puro: #151D33;
+  --color-text-on-light: #E8EDF7;
+  --color-text-muted: #A9B3CA;
+  --color-border: #2D3958;
+  --color-azul-acero: #8DB8E8;
+  --color-azul-acero-hover: #B3D0F0;
+  --color-azul-acero-light: #1C2947;
+
+  /* Subida y bajada con contraste sobre fondo oscuro (siempre con ▲ / ▼) */
+  --color-bullish: #5FD08F;
+  --color-bullish-bg: #12301F;
+  --color-bullish-border: #1F5B3A;
+  --color-bearish: #FF8F8F;
+  --color-bearish-bg: #3A1A1F;
+  --color-bearish-border: #6B2D33;
+
+  /* Tokens de tema */
+  --superficie: #151D33;
+  --columna-activa: #1B2744;
+  --nav-activo: #264E7A;
+
+  /* Variables propias de login y gráfica */
+  --blanco-hueso: #0E1424;
+  --texto-gris: #A9B3CA;
+  --borde-tarjeta: #2D3958;
+  --borde-input: #4A6B93;
+}
+
+/* Login */
+html[data-theme='dark'] .login-card { background-color: #151D33; box-shadow: none; border: 1px solid #2D3958; }
+html[data-theme='dark'] .login-card-title,
+html[data-theme='dark'] .login-label { color: #E8EDF7; }
+html[data-theme='dark'] .login-label.login-label-error { color: #FF8F8F; }
+html[data-theme='dark'] .login-input { background-color: #0E1424; color: #E8EDF7; border-color: #4A6B93; }
+html[data-theme='dark'] .login-input.login-input-error {
+  background-color: #22131B;
+  border-color: #FF6B6B;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.18);
+}
+html[data-theme='dark'] .login-input.login-input-error:focus,
+html[data-theme='dark'] .login-input.login-input-error:focus-visible {
+  border-color: #FF8F8F;
+  box-shadow: 0 0 0 3px rgba(255, 143, 143, 0.28);
+}
+html[data-theme='dark'] .login-field-error { color: #FF8F8F; }
+html[data-theme='dark'] .login-toggle-eye { color: #8DB8E8; }
+
+/* Tablero: Banner CTA en modo oscuro */
+html[data-theme='dark'] .cta {
+  background: linear-gradient(135deg, #151D33 0%, #1C2947 100%);
+  border-color: #2D3958;
+  border-left-color: #24A460;
+}
+html[data-theme='dark'] .cta-boton {
+  background: #24A460;
+  color: #0E1424;
+}
+html[data-theme='dark'] .cta-boton:hover {
+  background: #2EBD70;
+  color: #0E1424;
+}
+
+/* Gráfica */
+html[data-theme='dark'] .grafica-card-container,
+html[data-theme='dark'] .grafica-stat-card,
+html[data-theme='dark'] .grafica-select-entidad { background-color: #151D33; }
+html[data-theme='dark'] .grafica-title,
+html[data-theme='dark'] .grafica-main-value,
+html[data-theme='dark'] .grafica-stat-value,
+html[data-theme='dark'] .grafica-select-entidad { color: #E8EDF7; }
+html[data-theme='dark'] .grafica-badge-finanzas { background-color: #1C2947; color: #8DB8E8; }
+html[data-theme='dark'] .grafica-type-toggle { background-color: #0E1424; }
+html[data-theme='dark'] .grafica-period-btn { background-color: #1C2947; color: #E8EDF7; }
+html[data-theme='dark'] .grafica-toggle-btn { color: #E8EDF7; }
+html[data-theme='dark'] .grafica-toggle-btn.active,
+html[data-theme='dark'] .grafica-period-btn.active { background-color: #264E7A; color: #FFFFFF; }
+
+/* Logo: versión clara en modo claro, versión para fondo oscuro en modo oscuro */
+.logo-oscuro { display: none; }
+html[data-theme='dark'] .logo-claro { display: none; }
+html[data-theme='dark'] .logo-oscuro { display: inline; }
+html[data-theme='dark'] img.login-logo-img.logo-oscuro { display: block; }
+
+/* Ranking: cambio de posición y errores */
+html[data-theme='dark'] .cambio-sube { color: #5FD08F; background: #12301F; }
+html[data-theme='dark'] .cambio-baja { color: #FF8F8F; background: #3A1A1F; }
+html[data-theme='dark'] .estado-error { color: #FF8F8F; }

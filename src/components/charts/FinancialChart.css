@@ -1,0 +1,283 @@
+:root {
+  --azul-noche: #151D33;
+  --azul-acero: #264E7A;
+  --verde-alza: #24A460;
+  --rojo-bajada: #D9534F;
+  --blanco-hueso: #F6F5F3;
+  --texto-gris: #5A6375;
+  --borde-tarjeta: #E2E8F0;
+}
+
+.grafica-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-family);
+}
+
+.grafica-card-container {
+  background-color: var(--superficie, #FFFFFF);
+  border-radius: 20px;
+  padding: 32px 36px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Cabecera Superior */
+.grafica-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.grafica-breadcrumb {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.grafica-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.grafica-title {
+  color: var(--color-text-on-light);
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.grafica-ticker {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.grafica-badge-finanzas {
+  background-color: var(--color-azul-acero-light);
+  color: var(--color-azul-acero);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Lado Derecho: Selector de Entidad y Precio */
+.grafica-header-right-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.grafica-entidad-selector-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grafica-selector-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.grafica-select-entidad {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-border);
+  background-color: var(--superficie, #FFFFFF);
+  color: var(--color-text-on-light);
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  min-width: 220px;
+}
+
+.grafica-select-entidad:focus-visible {
+  border-color: var(--color-azul-acero);
+}
+
+.grafica-price-display-box {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.grafica-main-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-text-on-light);
+  line-height: 1;
+}
+
+.grafica-main-change {
+  background-color: var(--color-bullish-bg);
+  color: var(--color-bullish);
+  border: 1px solid var(--color-bullish-border);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.grafica-main-change.baja {
+  background-color: var(--color-bearish-bg);
+  color: var(--color-bearish);
+  border-color: var(--color-bearish-border);
+}
+
+.grafica-main-change.igual {
+  background-color: var(--color-blanco-hueso);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+/* Fila de Controles (Velas/Línea y Periodos) */
+.grafica-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.grafica-type-toggle {
+  background-color: #E2E8F0;
+  padding: 4px;
+  border-radius: 12px;
+  display: flex;
+  gap: 4px;
+}
+
+.grafica-toggle-btn {
+  border: none;
+  min-height: 40px;
+  padding: 8px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--color-text-on-light);
+  transition: all 0.2s;
+}
+
+.grafica-toggle-btn.active {
+  background-color: var(--nav-activo, #151D33);
+  color: #FFFFFF;
+}
+
+.grafica-period-group {
+  display: flex;
+  gap: 6px;
+}
+
+.grafica-period-btn {
+  border: none;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  background-color: #E2E8F0;
+  color: var(--color-text-on-light);
+  transition: all 0.2s;
+}
+
+.grafica-period-btn.active {
+  background-color: var(--nav-activo, #151D33);
+  color: #FFFFFF;
+}
+
+/* Tarjetas Inferiores OHLC en 5 columnas */
+.grafica-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.grafica-stat-card {
+  background-color: var(--superficie, #FFFFFF);
+  border: 1.5px solid var(--color-border);
+  padding: 18px 20px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.grafica-stat-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.grafica-stat-val-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.grafica-stat-value {
+  font-size: 20px;
+  color: var(--color-text-on-light);
+  font-weight: 700;
+}
+
+.grafica-stat-change-tag {
+  color: var(--color-bullish);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.grafica-stat-change-tag.baja {
+  color: var(--color-bearish);
+}
+
+.grafica-stat-change-tag.igual {
+  color: var(--color-text-muted);
+}
+
+.grafica-footer-note {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+/* Responsive (360px, 768px, 1280px) */
+@media (max-width: 1024px) {
+  .grafica-cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .grafica-card-container { padding: 18px 16px; border-radius: 16px; }
+  .grafica-title { font-size: 24px; }
+  .grafica-main-value { font-size: 28px; }
+  .grafica-header-right-group { width: 100%; justify-content: space-between; }
+  .grafica-entidad-selector-wrapper { width: 100%; }
+  .grafica-cards-grid { grid-template-columns: 1fr; gap: 12px; }
+  /* para que los botones de periodo no se salgan en 360px */
+  .grafica-period-group { flex-wrap: wrap; width: 100%; }
+  .grafica-period-btn { flex: 1 1 auto; text-align: center; padding: 8px 10px; }
+  .grafica-select-entidad { min-width: 0; width: 100%; }
+}

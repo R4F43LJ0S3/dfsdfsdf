@@ -1,0 +1,4 @@
+.boton-tema { width: 44px; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--superficie); color: var(--color-text-on-light); display: inline-grid; place-items: center; }
+.boton-tema:hover { background: var(--color-azul-acero-light); }
+.boton-tema:focus-visible { outline: 3px solid var(--color-verde-alza); outline-offset: 2px; }
+.tema-flotante { position: fixed; top: 16px; right: 16px; z-index: 10; }
