@@ -9,18 +9,20 @@
 }
 
 .grafica-wrapper {
-  width: 100%;
+  background-color: var(--blanco-hueso);
+  padding: 32px;
+  min-height: 100vh;
   box-sizing: border-box;
-  font-family: var(--font-family);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .grafica-card-container {
-  background-color: var(--superficie, #FFFFFF);
-  border-radius: 20px;
-  padding: 32px 36px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
-  width: 100%;
+  background-color: #FFFFFF;
+  border-radius: 24px;
+  padding: 36px 40px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--borde-tarjeta);
+  max-width: 1300px;
   margin: 0 auto;
 }
 
@@ -36,7 +38,7 @@
 
 .grafica-breadcrumb {
   font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--texto-gris);
   margin-bottom: 8px;
 }
 
@@ -48,22 +50,22 @@
 }
 
 .grafica-title {
-  color: var(--color-text-on-light);
-  font-size: 32px;
+  color: var(--azul-noche);
+  font-size: 34px;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.5px;
 }
 
 .grafica-ticker {
-  color: var(--color-text-muted);
+  color: var(--texto-gris);
   font-size: 14px;
   font-weight: 600;
 }
 
 .grafica-badge-finanzas {
-  background-color: var(--color-azul-acero-light);
-  color: var(--color-azul-acero);
+  background-color: #EBF2F7;
+  color: var(--azul-acero);
   padding: 4px 14px;
   border-radius: 20px;
   font-size: 12px;
@@ -86,17 +88,16 @@
 
 .grafica-selector-label {
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--texto-gris);
   font-weight: 600;
 }
 
 .grafica-select-entidad {
-  min-height: 44px;
   padding: 10px 16px;
   border-radius: 10px;
-  border: 1.5px solid var(--color-border);
-  background-color: var(--superficie, #FFFFFF);
-  color: var(--color-text-on-light);
+  border: 1.5px solid var(--borde-tarjeta);
+  background-color: #FFFFFF;
+  color: var(--azul-noche);
   font-size: 14px;
   font-weight: 500;
   outline: none;
@@ -104,45 +105,27 @@
   min-width: 220px;
 }
 
-.grafica-select-entidad:focus-visible {
-  border-color: var(--color-azul-acero);
-}
-
 .grafica-price-display-box {
   display: flex;
   align-items: baseline;
   gap: 12px;
   padding-bottom: 2px;
-  flex-wrap: wrap;
 }
 
 .grafica-main-value {
-  font-size: 36px;
+  font-size: 38px;
   font-weight: 700;
-  color: var(--color-text-on-light);
+  color: var(--azul-noche);
   line-height: 1;
 }
 
 .grafica-main-change {
-  background-color: var(--color-bullish-bg);
-  color: var(--color-bullish);
-  border: 1px solid var(--color-bullish-border);
+  background-color: rgba(36, 164, 96, 0.1);
+  color: var(--verde-alza);
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-}
-
-.grafica-main-change.baja {
-  background-color: var(--color-bearish-bg);
-  color: var(--color-bearish);
-  border-color: var(--color-bearish-border);
-}
-
-.grafica-main-change.igual {
-  background-color: var(--color-blanco-hueso);
-  color: var(--color-text-muted);
-  border-color: var(--color-border);
 }
 
 /* Fila de Controles (Velas/Línea y Periodos) */
@@ -165,19 +148,18 @@
 
 .grafica-toggle-btn {
   border: none;
-  min-height: 40px;
   padding: 8px 20px;
   border-radius: 10px;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
   background-color: transparent;
-  color: var(--color-text-on-light);
+  color: var(--azul-noche);
   transition: all 0.2s;
 }
 
 .grafica-toggle-btn.active {
-  background-color: var(--nav-activo, #151D33);
+  background-color: var(--azul-noche);
   color: #FFFFFF;
 }
 
@@ -188,23 +170,22 @@
 
 .grafica-period-btn {
   border: none;
-  min-height: 40px;
   padding: 8px 16px;
   border-radius: 10px;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
   background-color: #E2E8F0;
-  color: var(--color-text-on-light);
+  color: var(--azul-noche);
   transition: all 0.2s;
 }
 
 .grafica-period-btn.active {
-  background-color: var(--nav-activo, #151D33);
+  background-color: var(--azul-noche);
   color: #FFFFFF;
 }
 
-/* Tarjetas Inferiores OHLC en 5 columnas */
+/* Tarjetas Inferiores OHLC en 5 columnas exactas */
 .grafica-cards-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -213,9 +194,9 @@
 }
 
 .grafica-stat-card {
-  background-color: var(--superficie, #FFFFFF);
-  border: 1.5px solid var(--color-border);
-  padding: 18px 20px;
+  background-color: #FFFFFF;
+  border: 1.5px solid var(--borde-tarjeta);
+  padding: 18px 22px;
   border-radius: 14px;
   display: flex;
   flex-direction: column;
@@ -223,7 +204,7 @@
 
 .grafica-stat-label {
   font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--texto-gris);
   margin-bottom: 6px;
   font-weight: 500;
 }
@@ -232,37 +213,28 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .grafica-stat-value {
-  font-size: 20px;
-  color: var(--color-text-on-light);
+  font-size: 22px;
+  color: var(--azul-noche);
   font-weight: 700;
 }
 
 .grafica-stat-change-tag {
-  color: var(--color-bullish);
+  color: var(--verde-alza);
   font-size: 13px;
   font-weight: 600;
-}
-
-.grafica-stat-change-tag.baja {
-  color: var(--color-bearish);
-}
-
-.grafica-stat-change-tag.igual {
-  color: var(--color-text-muted);
 }
 
 .grafica-footer-note {
   margin-top: 24px;
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--texto-gris);
   text-align: left;
 }
 
-/* Responsive (360px, 768px, 1280px) */
+/* Responsive */
 @media (max-width: 1024px) {
   .grafica-cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -270,14 +242,61 @@
 }
 
 @media (max-width: 768px) {
-  .grafica-card-container { padding: 18px 16px; border-radius: 16px; }
-  .grafica-title { font-size: 24px; }
-  .grafica-main-value { font-size: 28px; }
-  .grafica-header-right-group { width: 100%; justify-content: space-between; }
-  .grafica-entidad-selector-wrapper { width: 100%; }
-  .grafica-cards-grid { grid-template-columns: 1fr; gap: 12px; }
-  /* para que los botones de periodo no se salgan en 360px */
-  .grafica-period-group { flex-wrap: wrap; width: 100%; }
-  .grafica-period-btn { flex: 1 1 auto; text-align: center; padding: 8px 10px; }
-  .grafica-select-entidad { min-width: 0; width: 100%; }
+  .grafica-wrapper { padding: 16px; }
+  .grafica-card-container { padding: 20px; }
+  .grafica-title { font-size: 26px; }
+  .grafica-main-value { font-size: 30px; }
+  .grafica-cards-grid { grid-template-columns: 1fr; }
+}
+
+
+
+
+
+
+
+
+/* Fondo general de la página idéntico al mockup */
+.grafica-wrapper {
+  background-color: #F6F5F3; /* Blanco hueso / Gris suave del mockup */
+  padding: 24px 40px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Tarjeta contenedora de la gráfica */
+.grafica-card-container {
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  padding: 32px 36px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  border: 1px solid #E2E0DC;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Botones Activos Oscuros */
+.grafica-toggle-btn.active,
+.grafica-period-btn.active {
+  background-color: #151D33 !important; /* Azul Noche del mockup */
+  color: #FFFFFF !important;
+  border-radius: 8px;
+}
+
+/* Formato de la nota de pie */
+.grafica-footer-note {
+  margin-top: 20px;
+  font-size: 13px;
+  color: #6B7280;
+  text-align: left;
+}
+
+
+
+
+
+/* Oculta el enlace y la marca de agua de TradingView */
+.grafica-card-container a[href*="tradingview"] {
+  display: none !important;
+  pointer-events: none !important;
 }

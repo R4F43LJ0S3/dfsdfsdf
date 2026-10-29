@@ -1,205 +1,44 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import logoAlza from '../assets/logo-alza.png';
-import logoAlzaOscuro from '../assets/logo-alza-oscuro.png';
-import BotonTema from '../components/common/BotonTema';
+import { login } from '../services/api';
 import '../styles/Login.css';
-import { useAuth } from '../context/AuthContext';
-import { extraerMensajeError } from '../services/authService';
-import {
-  LIMITES_CAMPOS,
-  SEGURIDAD_LOGIN,
-  limitarEntradaIdentificador,
-  limitarEntradaPassword,
-  validarIdentificadorTiempoReal,
-  validarPasswordTiempoReal,
-  validarIdentificadorAcceso,
-  validarPasswordAcceso,
-} from '../constants/validaciones';
-import {
-  obtenerEstadoIntentos,
-  marcarInicioPeticionLogin,
-  registrarIntentoFallido,
-  limpiarIntentosFallidos,
-  formatearTiempoBloqueo,
-} from '../utils/controlIntentosLogin';
 
 export const Login = () => {
-  const { login } = useAuth();
-  const [error, setError] = useState('');
-  const [identificador, setIdentificador] = useState('');
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
-  const [errorIdentificador, setErrorIdentificador] = useState('');
-  const [errorPassword, setErrorPassword] = useState('');
-  const [tocadoIdentificador, setTocadoIdentificador] = useState(false);
-  const [tocadoPassword, setTocadoPassword] = useState(false);
-  const [cargando, setCargando] = useState(false);
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  const [estadoIntentos, setEstadoIntentos] = useState(obtenerEstadoIntentos);
-
-  const refIdentificador = useRef(null);
-  const refPassword = useRef(null);
+  const [error, setError] = useState('');
+  const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Cuenta regresiva en tiempo real cuando se alcanzan los 10 intentos fallidos
-  useEffect(() => {
-    if (!estadoIntentos.bloqueado) return undefined;
-
-    const timer = setInterval(() => {
-      const actual = obtenerEstadoIntentos();
-      setEstadoIntentos(actual);
-      if (!actual.bloqueado) {
-        setError('');
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [estadoIntentos.bloqueado]);
-
-  const handleIdentificadorChange = (e) => {
-    const nuevoValor = limitarEntradaIdentificador(e.target.value);
-    setIdentificador(nuevoValor);
-    if (error) setError('');
-
-    if (!nuevoValor) {
-      setErrorIdentificador('');
-      setTocadoIdentificador(false);
-      return;
-    }
-
-    // Marca en rojo al instante si se ingresa un carácter o secuencia no permitida
-    const rt = validarIdentificadorTiempoReal(nuevoValor);
-    if (!rt.valido) {
-      setErrorIdentificador(rt.error);
-      return;
-    }
-
-    if (tocadoIdentificador) {
-      const completo = validarIdentificadorAcceso(nuevoValor);
-      setErrorIdentificador(completo.valido ? '' : completo.error);
-    } else {
-      setErrorIdentificador('');
-    }
-  };
-
-  const handleIdentificadorBlur = () => {
-    if (!identificador) return;
-    setTocadoIdentificador(true);
-    const completo = validarIdentificadorAcceso(identificador);
-    setErrorIdentificador(completo.valido ? '' : completo.error);
-  };
-
-  const handlePasswordChange = (e) => {
-    const nuevoValor = limitarEntradaPassword(e.target.value);
-    setPassword(nuevoValor);
-    if (error) setError('');
-
-    if (!nuevoValor) {
-      setErrorPassword('');
-      setTocadoPassword(false);
-      return;
-    }
-
-    // Marca en rojo al instante si se ingresa un símbolo prohibido o espacio
-    const rt = validarPasswordTiempoReal(nuevoValor);
-    if (!rt.valido) {
-      setErrorPassword(rt.error);
-      return;
-    }
-
-    if (tocadoPassword) {
-      const completo = validarPasswordAcceso(nuevoValor);
-      setErrorPassword(completo.valido ? '' : completo.error);
-    } else {
-      setErrorPassword('');
-    }
-  };
-
-  const handlePasswordBlur = () => {
-    if (!password) return;
-    setTocadoPassword(true);
-    const completo = validarPasswordAcceso(password);
-    setErrorPassword(completo.valido ? '' : completo.error);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (cargando) return;
-
-    const revisionActual = obtenerEstadoIntentos();
-    setEstadoIntentos(revisionActual);
-
-    if (revisionActual.bloqueado) {
-      setError(
-        `Has alcanzado el límite de ${SEGURIDAD_LOGIN.MAX_INTENTOS} intentos. Espera ${formatearTiempoBloqueo(revisionActual.segundosRestantes)} para volver a intentar.`,
-      );
-      return;
-    }
-
-    if (revisionActual.enCooldown) {
-      return;
-    }
-
-    // Validación completa por campo antes de consultar al servidor
-    const valUsuario = validarIdentificadorAcceso(identificador);
-    const valPass = validarPasswordAcceso(password);
-
-    setTocadoIdentificador(true);
-    setTocadoPassword(true);
-    setErrorIdentificador(valUsuario.valido ? '' : valUsuario.error);
-    setErrorPassword(valPass.valido ? '' : valPass.error);
-
-    if (!valUsuario.valido) {
-      refIdentificador.current?.focus();
-      return;
-    }
-
-    if (!valPass.valido) {
-      refPassword.current?.focus();
-      return;
-    }
-
     setError('');
     setCargando(true);
-    marcarInicioPeticionLogin();
 
     try {
-      await login(identificador, password);
-      limpiarIntentosFallidos();
-      setEstadoIntentos(obtenerEstadoIntentos());
-      navigate(location.state?.desde ?? '/dashboard', { replace: true });
-    } catch (err) {
-      const esErrorRed = !err?.response && err?.message !== 'Credenciales inválidas';
-      if (esErrorRed) {
-        setError(extraerMensajeError(err, 'No se pudo conectar con el servidor.'));
-      } else {
-        const nuevoEstado = registrarIntentoFallido();
-        setEstadoIntentos(nuevoEstado);
+      // Llamada al endpoint real de Render a través de api.js
+      const data = await login(usuario, password);
 
-        if (nuevoEstado.bloqueado) {
-          setError(
-            `Cuenta bloqueada temporalmente tras ${SEGURIDAD_LOGIN.MAX_INTENTOS} intentos fallidos. Intenta de nuevo en ${formatearTiempoBloqueo(nuevoEstado.segundosRestantes)}.`,
-          );
-        } else {
-          const baseMsg = extraerMensajeError(err, 'Usuario o contraseña incorrectos.');
-          const avisoRestantes =
-            nuevoEstado.fallos >= SEGURIDAD_LOGIN.UMBRAL_ADVERTENCIA
-              ? ` (Quedan ${nuevoEstado.intentosRestantes} ${nuevoEstado.intentosRestantes === 1 ? 'intento' : 'intentos'}).`
-              : '';
-          setError(`${baseMsg}${avisoRestantes}`);
-        }
+      // Guardamos el token y los datos de usuario exactamente como los pide el interceptor
+      if (data && data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+
+        // Redirigimos al tablero principal de forma exitosa
+        navigate('/dashboard');
       }
+    } catch (err) {
+      console.error('Error al iniciar sesión:', err);
+      setError('Credenciales inválidas o error de conexión con el servidor.');
     } finally {
       setCargando(false);
     }
   };
 
-  const deshabilitado = cargando || estadoIntentos.bloqueado;
-
   return (
     <div className="login-container">
-      <BotonTema className="tema-flotante" />
       {/* Panel Izquierdo Oscuro */}
       <div className="login-panel-left">
         <span className="login-tag">SIFTC · PORTAL WEB</span>
@@ -235,90 +74,45 @@ export const Login = () => {
       {/* Panel Derecho Claro */}
       <div className="login-panel-right">
         <div className="login-card">
-          <img src={logoAlza} alt="Logo ALZA" className="login-logo-img logo-claro" />
-          <img src={logoAlzaOscuro} alt="Logo ALZA" className="login-logo-img logo-oscuro" />
+          <img src={logoAlza} alt="Logo ALZA" className="login-logo-img" />
 
           <h2 className="login-card-title">Iniciar sesión</h2>
-          <p className="login-card-subtitle">Ingresa con tu correo o usuario del sistema.</p>
+          <p className="login-card-subtitle">Ingresa con tu usuario y contraseña del sistema.</p>
 
-          <form onSubmit={handleSubmit} className="login-form" noValidate>
+          {error && (
+            <div style={{ color: '#d9534f', fontSize: '13px', marginBottom: '15px', fontWeight: '500' }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="login-form">
             <div className="login-field-group">
-              <div className="login-label-row">
-                <label
-                  htmlFor="login-identificador"
-                  className={`login-label ${errorIdentificador ? 'login-label-error' : ''}`}
-                >
-                  Usuario o correo
-                </label>
-                {identificador.length >= LIMITES_CAMPOS.EMAIL_MAX - 20 && (
-                  <span className="login-char-count mono-num">
-                    {identificador.length}/{LIMITES_CAMPOS.EMAIL_MAX}
-                  </span>
-                )}
-              </div>
+              <label className="login-label">Usuario</label>
               <input
-                ref={refIdentificador}
-                id="login-identificador"
                 type="text"
-                inputMode="email"
-                placeholder="ej: analista@siftc.edu.co o analista"
-                value={identificador}
-                onChange={handleIdentificadorChange}
-                onBlur={handleIdentificadorBlur}
-                maxLength={LIMITES_CAMPOS.EMAIL_MAX}
-                className={`login-input ${errorIdentificador ? 'login-input-error' : ''}`}
-                aria-invalid={Boolean(errorIdentificador)}
-                aria-describedby={errorIdentificador ? 'login-identificador-error' : undefined}
-                autoComplete="username"
-                spellCheck={false}
-                disabled={deshabilitado}
+                placeholder="Escribe tu usuario"
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value)}
+                className="login-input"
                 required
               />
-              {errorIdentificador && (
-                <p id="login-identificador-error" className="login-field-error" role="alert">
-                  {errorIdentificador}
-                </p>
-              )}
             </div>
 
             <div className="login-field-group">
-              <div className="login-label-row">
-                <label
-                  htmlFor="login-password"
-                  className={`login-label ${errorPassword ? 'login-label-error' : ''}`}
-                >
-                  Contraseña
-                </label>
-                {password.length >= LIMITES_CAMPOS.PASSWORD_MAX - 12 && (
-                  <span className="login-char-count mono-num">
-                    {password.length}/{LIMITES_CAMPOS.PASSWORD_MAX}
-                  </span>
-                )}
-              </div>
+              <label className="login-label">Contraseña</label>
               <div className="login-input-password-wrapper">
                 <input
-                  ref={refPassword}
-                  id="login-password"
                   type={mostrarPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Escribe tu contraseña"
                   value={password}
-                  onChange={handlePasswordChange}
-                  onBlur={handlePasswordBlur}
-                  maxLength={LIMITES_CAMPOS.PASSWORD_MAX}
-                  className={`login-input ${errorPassword ? 'login-input-error' : ''}`}
-                  aria-invalid={Boolean(errorPassword)}
-                  aria-describedby={errorPassword ? 'login-password-error' : undefined}
-                  autoComplete="current-password"
-                  disabled={deshabilitado}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="login-input"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setMostrarPassword(!mostrarPassword)}
                   className="login-toggle-eye"
-                  aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                  disabled={deshabilitado}
-                  tabIndex={-1}
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -326,38 +120,16 @@ export const Login = () => {
                   </svg>
                 </button>
               </div>
-              {errorPassword && (
-                <p id="login-password-error" className="login-field-error" role="alert">
-                  {errorPassword}
-                </p>
-              )}
             </div>
 
-            {estadoIntentos.bloqueado ? (
-              <div className="login-lockout" role="alert" aria-live="assertive">
-                <strong>Acceso bloqueado temporalmente ({SEGURIDAD_LOGIN.MAX_INTENTOS}/{SEGURIDAD_LOGIN.MAX_INTENTOS} intentos)</strong>
-                <span>
-                  Por protección del sistema financiero, espera{' '}
-                  <strong className="mono-num">{formatearTiempoBloqueo(estadoIntentos.segundosRestantes)}</strong>{' '}
-                  para volver a intentar.
-                </span>
-              </div>
-            ) : (
-              error && <p className="login-error" role="alert">{error}</p>
-            )}
-
-            <button type="submit" className="login-submit-btn" disabled={deshabilitado}>
-              {estadoIntentos.bloqueado
-                ? `Bloqueado (${formatearTiempoBloqueo(estadoIntentos.segundosRestantes)})`
-                : cargando
-                ? 'Ingresando…'
-                : 'Ingresar'}
+            <button type="submit" className="login-submit-btn" disabled={cargando}>
+              {cargando ? 'Validando...' : 'Ingresar'}
             </button>
           </form>
 
-          <p className="login-footer-text">
-            Acceso solo para personal autorizado. Si no tienes cuenta, pídela al administrador.
-          </p>
+          <footer className="login-footer-text">
+            Sistema de Información Financiera de Trazabilidad y Competitividad
+          </footer>
         </div>
       </div>
     </div>

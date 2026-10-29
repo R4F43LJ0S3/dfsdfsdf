@@ -1,28 +1,28 @@
-import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import Login from '../pages/Login'
-import Layout from '../components/layout/Layout'
-import ProtectedRoute from './ProtectedRoute'
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Dashboard from '../pages/Dashboard';
+import Login from '../pages/Login';
+import Layout from '../components/Layout/layout';
 
-// Cada pantalla se descarga solo cuando se entra a ella (menos peso al cargar el tablero)
-const Dashboard = lazy(() => import('../pages/Dashboard'))
-const FinancialChart = lazy(() => import('../components/charts/FinancialChart'))
-const Ranking = lazy(() => import('../components/ranking/Ranking'))
-
-export default function AppRouter() {
+export const AppRouter = () => {
   return (
-    <Suspense fallback={<p style={{ padding: 24 }}>Cargando…</p>}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/grafica" element={<FinancialChart />} />
-            <Route path="/ranking" element={<Ranking />} />
-          </Route>
-        </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Suspense>
-  )
-}
+    <Routes>
+      {/* Ruta para el Login del proyecto */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Rutas protegidas que llevan el Layout general */}
+      <Route element={<Layout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/grafica" element={<Dashboard />} />
+      </Route>
+
+      {/* Flujo normal: al entrar a la raíz va al Login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Comodín para URLs no encontradas */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+};
+
+export default AppRouter;
