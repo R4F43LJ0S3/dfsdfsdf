@@ -9,7 +9,7 @@ export default function TopLista({ titulo, entidades }) {
       <ol className="lista-top">
         {entidades.map((e, i) => (
           <li key={e.codigo_entidad}>
-            <Link to="/grafica" className="fila-top">
+            <Link to={`/grafica?entidad=${e.codigo_entidad}`} className="fila-top">
               <span className="pos">{i + 1}</span>
               <span className="fila-nombre">
                 <strong>{e.nombre_entidad}</strong>

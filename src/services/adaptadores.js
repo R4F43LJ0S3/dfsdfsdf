@@ -1,5 +1,7 @@
-// Traduce lo que responde el backend (camelCase: codigo, nombre, ic, variacionPct...)
-// a los nombres que usan el tablero y el ticker (codigo_entidad, indice_competitividad...).
+// Traduce lo que responde el backend (contrato "Endpoints requeridos por Frontend":
+// camelCase, ic, variacionPct, nombre...) a los nombres que usan el tablero y el ticker
+// (diccionario de datos: codigo_entidad, indice_competitividad, variacion_porcentual...).
+// El ranking y los catálogos ya usan los nombres del contrato, por eso no pasan por aquí.
 // Si Backend cambia un nombre de campo, se corrige SOLO en este archivo.
 
 const direccion = (v) => (v > 0 ? 'UP' : v < 0 ? 'DOWN' : 'EQUAL')
@@ -9,49 +11,77 @@ export const aEntidad = (e) => ({
   codigo_entidad: e.codigo,
   nombre_entidad: e.nombre,
   sector: e.sector,
-  indice_competitividad: e.ic,
-  variacion: e.variacion,
-  variacion_porcentual: e.variacionPct,
-  direccion: direccion(e.variacionPct),
+  indice_competitividad: e.ic ?? 0,
+  variacion: e.variacion ?? 0,
+  variacion_porcentual: e.variacionPct ?? 0,
+  direccion: direccion(e.variacionPct ?? 0),
 })
 
 export const aEntidades = (lista) => lista.map(aEntidad)
 
-// Top 5 ganadores y perdedores a partir de la lista de entidades (el backend no tiene /mercado/top).
-export function aTop(entidades) {
-  const validas = entidades.filter((e) => e.variacion_porcentual != null)
-  const orden = [...validas].sort((a, b) => b.variacion_porcentual - a.variacion_porcentual)
-  return { ganadores: orden.slice(0, 5), perdedores: orden.slice(-5).reverse() }
+// /mercado/top no trae código ni sector: se completan con la lista de entidades (por id).
+export function aTop(top, entidades) {
+  const porId = new Map(entidades.map((e) => [e.id, e]))
+  const completar = (t) => {
+    const base = porId.get(t.id)
+    const varPct = t.variacionPct ?? 0
+    return {
+      id: t.id,
+      codigo_entidad: base?.codigo_entidad ?? '',
+      nombre_entidad: t.nombre ?? base?.nombre_entidad,
+      sector: base?.sector ?? '',
+      indice_competitividad: t.ic ?? 0,
+      variacion: t.variacion ?? 0,
+      variacion_porcentual: varPct,
+      direccion: direccion(varPct),
+    }
+  }
+  return { fecha: top.fecha, ganadores: top.ganadores.map(completar), perdedores: top.perdedores.map(completar) }
 }
 
-const promedio = (xs) => {
-  const v = xs.filter((x) => x != null)
-  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
-}
+// /indice-general solo trae valor y variación; apertura, máximo, mínimo, cierre y serie son opcionales.
+export const aIndiceGeneral = (i) => ({
+  fecha: i.fecha,
+  valor: i.valor,
+  variacion: i.variacionPct,
+  puntos: i.variacion,
+  apertura: i.apertura,
+  maximo: i.maximo,
+  minimo: i.minimo,
+  cierre: i.cierre,
+  serie: i.serie,
+})
 
-// Índice general = promedio del IC de las entidades (el backend no tiene /indice-general).
-export function aIndiceGeneral(entidades) {
+// Normaliza la respuesta de autenticación del Backend .NET (AuthResponseDto) o del Mock
+// AuthResponseDto plano: { idUsuario, email, nombreCompleto, rol, token }
+export function aSesion(respuestaApi) {
+  if (!respuestaApi) return null
+
+  // Si ya viene empaquetado en formato { token, usuario } (compatibilidad Mock previo)
+  if (respuestaApi.usuario && respuestaApi.token) {
+    const u = respuestaApi.usuario
+    return {
+      token: respuestaApi.token,
+      usuario: {
+        idUsuario: u.idUsuario ?? u.id ?? null,
+        email: u.email ?? u.usuario ?? '',
+        nombreCompleto: u.nombreCompleto ?? u.nombre ?? u.usuario ?? '',
+        nombre: u.nombre ?? u.nombreCompleto ?? u.usuario ?? '',
+        rol: u.rol ?? 'Analista financiero',
+      },
+    }
+  }
+
+  // Formato oficial .NET: AuthResponseDto
+  const nombreCompleto = respuestaApi.nombreCompleto ?? respuestaApi.email?.split('@')[0] ?? ''
   return {
-    fecha: new Date().toISOString().slice(0, 10),
-    valor: promedio(entidades.map((e) => e.indice_competitividad)),
-    variacion: promedio(entidades.map((e) => e.variacion_porcentual)),
-    puntos: promedio(entidades.map((e) => e.variacion)),
-    derivado: true,
+    token: respuestaApi.token,
+    usuario: {
+      idUsuario: respuestaApi.idUsuario,
+      email: respuestaApi.email,
+      nombreCompleto,
+      nombre: nombreCompleto,
+      rol: respuestaApi.rol ?? 'Analista financiero',
+    },
   }
 }
-
-// OHLC del backend -> formato de lightweight-charts (time, open, high, low, close).
-export const aOhlc = (r) => ({
-  entidadId: r.entidadId,
-  entidad: r.entidad,
-  periodo: r.periodo,
-  serie: r.serie.map((p) => ({
-    time: p.fecha,
-    open: Number(p.apertura),
-    high: Number(p.maximo),
-    low: Number(p.minimo),
-    close: Number(p.cierre),
-    variacion: p.variacion,
-    variacionPct: p.variacionPct,
-  })),
-})

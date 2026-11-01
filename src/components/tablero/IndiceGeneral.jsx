@@ -1,4 +1,5 @@
 import { num, fechaIso } from '../../utils/format'
+import { USA_DATOS_DE_EJEMPLO } from '../../services/api'
 import Variacion from '../common/Variacion'
 
 function Sparkline({ serie }) {
@@ -27,7 +28,7 @@ export default function IndiceGeneral({ indice }) {
     ['Máximo', indice.maximo],
     ['Mínimo', indice.minimo],
     ['Cierre', indice.cierre],
-  ]
+  ].filter(([, valor]) => valor !== undefined && valor !== null)
 
   return (
     <section className="tarjeta">
@@ -35,19 +36,21 @@ export default function IndiceGeneral({ indice }) {
       <div className="indice-fila">
         <span className="indice-valor mono-num">{num(indice.valor, 1)}</span>
         <Variacion valor={indice.variacion} />
-        <span className="texto-suave">{num(indice.puntos, 1)} puntos vs cierre anterior</span>
-        <span className="texto-suave indice-periodo">Últimos 30 días</span>
+        {indice.puntos !== undefined && <span className="texto-suave">{num(indice.puntos, 1)} puntos vs cierre anterior</span>}
+        {indice.serie?.length > 1 && <span className="texto-suave indice-periodo">Últimos 30 días</span>}
       </div>
-      <Sparkline serie={indice.serie} />
-      <div className="celdas">
-        {celdas.map(([nombre, valor]) => (
-          <div className="celda" key={nombre}>
-            <span className="etiqueta">{nombre}</span>
-            <strong className="mono-num">{num(valor, 1)}</strong>
-          </div>
-        ))}
-      </div>
-      <p className="texto-suave nota">Cierre del {fechaIso(indice.fecha)} · Datos de ejemplo</p>
+      {indice.serie?.length > 1 && <Sparkline serie={indice.serie} />}
+      {celdas.length > 0 && (
+        <div className="celdas">
+          {celdas.map(([nombre, valor]) => (
+            <div className="celda" key={nombre}>
+              <span className="etiqueta">{nombre}</span>
+              <strong className="mono-num">{num(valor, 1)}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="texto-suave nota">Datos al {fechaIso(indice.fecha)}{USA_DATOS_DE_EJEMPLO ? ' · Datos de ejemplo' : ''}</p>
     </section>
   )
 }

@@ -1,4 +1,5 @@
 import { entidades } from './marketMocks'
+import { claveComparacion } from '../../utils/texto'
 
 // datos de prueba del ranking, con el mismo formato que va a mandar backend
 
@@ -29,8 +30,8 @@ const limitar = (n) => Math.round(Math.min(99, Math.max(1, n)) * 10) / 10
 const ajuste = (i, k) => (((i * 7 + k * 3) % 9) - 4) * 1.6
 
 function puntaje(e, i, dimension, periodo) {
-  const p = Math.max(0, catalogoPeriodos.findIndex((x) => x.id === periodo))
-  const k = Math.max(0, catalogoDimensiones.findIndex((d) => d.nombre === dimension) + 1)
+  const p = Math.max(0, catalogoPeriodos.findIndex((x) => claveComparacion(x.id) === claveComparacion(periodo)))
+  const k = Math.max(0, catalogoDimensiones.findIndex((d) => claveComparacion(d.nombre) === claveComparacion(dimension)) + 1)
   const base = e.indice_competitividad + p * (((i * 5) % 7) - 3) * 0.6
   return limitar(k ? base + ajuste(i, k) : base)
 }
@@ -39,7 +40,7 @@ function puntaje(e, i, dimension, periodo) {
 export function consultarRanking({ sector = '', dimension = '', periodo = 'mensual', orden = 'ic', dir = 'desc' } = {}) {
   const filtradas = entidades
     .map((e, i) => ({ e, i }))
-    .filter(({ e }) => !sector || e.sector === sector)
+    .filter(({ e }) => !sector || claveComparacion(e.sector) === claveComparacion(sector))
 
   const p = Math.max(0, catalogoPeriodos.findIndex((x) => x.id === periodo))
   const periodoAnterior = catalogoPeriodos[(p + 1) % catalogoPeriodos.length].id
@@ -49,7 +50,7 @@ export function consultarRanking({ sector = '', dimension = '', periodo = 'mensu
 
   const items = filtradas
     .map(({ e, i }) => ({
-      entidadId: i + 1,
+      entidadId: e.codigo_entidad,
       entidad: e.nombre_entidad,
       sector: e.sector,
       ic: puntaje(e, i, dimension, periodo),
