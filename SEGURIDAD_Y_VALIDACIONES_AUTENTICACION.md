@@ -24,7 +24,7 @@ De acuerdo con **OWASP Authentication Cheat Sheet**, **NIST SP 800-63B** y **RFC
 | Campo / Dato | ¿Sensible a mayúsculas? | ¿Sensible a tildes / `ñ` / símbolos? | Norma y justificación técnica aplicada |
 | :--- | :---: | :---: | :--- |
 | **Correo o Usuario (`identificador`)** | **No** *(Case-Insensitive)* | **Sí** *(Estricto)* | **Estándar correcto (OWASP / RFC 5321):** `Analista@SIFTC.EDU.CO` y `analista@siftc.edu.co` representan el mismo buzón (el propio backend guarda `email.Trim().ToLowerInvariant()`). Sin embargo, **no** se eliminan tildes ni se transforma `ñ` → `n`. |
-| **Contraseña (`password`)** | **Sí** *(100% Case-Sensitive)* | **Sí** *(100% Estricto)* | **Estándar obligatorio (NIST SP 800-63B §5.1.1.2):** Reducir mayúsculas o alterar acentos en contraseñas disminuye la entropía criptográfica. `"Alza2026!"` ≠ `"alza2026!"` y `"Año2026"` ≠ `"Ano2026"`. Solo se aplica forma canónica Unicode `NFC` sin modificar ningún carácter visible. |
+| **Contraseña (`password`)** | **Sí** *(100% Case-Sensitive)* | **Sí** *(100% Estricto)* | **Estándar obligatorio (NIST SP 800-63B §5.1.1.2):** Reducir mayúsculas o alterar acentos en contraseñas disminuye la entropía criptográfica. `"ClaveEj!"` ≠ `"claveej!"` y `"Año2026"` ≠ `"Ano2026"`. Solo se aplica forma canónica Unicode `NFC` sin modificar ningún carácter visible. |
 | **Rol de autorización (`usuario.rol`)** | **Sí** *(Exacto)* | **Sí** *(Exacto)* | **Estándar RBAC (OWASP ASVS 4.1):**En `src/constants/roles.js` se compara de forma exacta (`NFC` + `trim()`) contra el catálogo oficial de los 6 roles de `seguridad.roles`. |
 
 ---

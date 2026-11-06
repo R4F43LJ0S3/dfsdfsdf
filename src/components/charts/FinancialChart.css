@@ -281,3 +281,9 @@
   .grafica-period-btn { flex: 1 1 auto; text-align: center; padding: 8px 10px; }
   .grafica-select-entidad { min-width: 0; width: 100%; }
 }
+
+/* Oculta el enlace y la marca de agua de TradingView */
+.grafica-card-container a[href*="tradingview"] {
+  display: none !important;
+  pointer-events: none !important;
+}

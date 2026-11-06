@@ -32,31 +32,12 @@ html[data-theme='dark'] {
   --columna-activa: #1B2744;
   --nav-activo: #264E7A;
 
-  /* Variables propias de login y gráfica */
+  /* Variables propias de gráfica */
   --blanco-hueso: #0E1424;
   --texto-gris: #A9B3CA;
   --borde-tarjeta: #2D3958;
   --borde-input: #4A6B93;
 }
-
-/* Login */
-html[data-theme='dark'] .login-card { background-color: #151D33; box-shadow: none; border: 1px solid #2D3958; }
-html[data-theme='dark'] .login-card-title,
-html[data-theme='dark'] .login-label { color: #E8EDF7; }
-html[data-theme='dark'] .login-label.login-label-error { color: #FF8F8F; }
-html[data-theme='dark'] .login-input { background-color: #0E1424; color: #E8EDF7; border-color: #4A6B93; }
-html[data-theme='dark'] .login-input.login-input-error {
-  background-color: #22131B;
-  border-color: #FF6B6B;
-  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.18);
-}
-html[data-theme='dark'] .login-input.login-input-error:focus,
-html[data-theme='dark'] .login-input.login-input-error:focus-visible {
-  border-color: #FF8F8F;
-  box-shadow: 0 0 0 3px rgba(255, 143, 143, 0.28);
-}
-html[data-theme='dark'] .login-field-error { color: #FF8F8F; }
-html[data-theme='dark'] .login-toggle-eye { color: #8DB8E8; }
 
 /* Tablero: Banner CTA en modo oscuro */
 html[data-theme='dark'] .cta {
@@ -88,11 +69,10 @@ html[data-theme='dark'] .grafica-toggle-btn { color: #E8EDF7; }
 html[data-theme='dark'] .grafica-toggle-btn.active,
 html[data-theme='dark'] .grafica-period-btn.active { background-color: #264E7A; color: #FFFFFF; }
 
-/* Logo: versión clara en modo claro, versión para fondo oscuro en modo oscuro */
+/* Logo de barra de navegación: versión clara en modo claro, versión para fondo oscuro en modo oscuro */
 .logo-oscuro { display: none; }
 html[data-theme='dark'] .logo-claro { display: none; }
 html[data-theme='dark'] .logo-oscuro { display: inline; }
-html[data-theme='dark'] img.login-logo-img.logo-oscuro { display: block; }
 
 /* Ranking: cambio de posición y errores */
 html[data-theme='dark'] .cambio-sube { color: #5FD08F; background: #12301F; }

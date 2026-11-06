@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "diagnostico:api": "node scripts/diagnostico-api.mjs",
+    "explorar:api": "node scripts/explorar-api.mjs",
+    "probar:filtros": "node scripts/probar-filtros.mjs",
+    "ver:parametros": "node scripts/ver-parametros.mjs",
+    "ver:ohlc": "node scripts/ver-ohlc.mjs"
   },
   "dependencies": {
     "axios": "^1.20.0",

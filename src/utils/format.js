@@ -1,5 +1,5 @@
 // Formato para pantalla: coma decimal y fechas dd/mm/aaaa.
-// Los datos (API y mocks) siguen con punto decimal.
+// Los datos de la API viajan con punto decimal.
 export function num(valor, decimales = 1) {
   if (valor === null || valor === undefined || Number.isNaN(Number(valor))) return '—'
   return Number(valor).toLocaleString('es-CO', {

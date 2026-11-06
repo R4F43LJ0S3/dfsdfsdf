@@ -9,67 +9,39 @@
 ## Requisitos Previos
 
 - **Node.js** `20+` y **npm**
-- *(Opcional, solo si deseas conectar con la base de datos y API real)*: **Docker Desktop** encendido
 
 ---
 
 ## Cómo ejecutar el proyecto en tu computadora
 
-### Opción A — Modo Rápido (Sin Docker ni Backend, en 1 minuto)
-
-Ideal para revisar diseño, responsive, gráficas, ranking, modo claro/oscuro y validaciones de seguridad sin instalar contenedores:
+### 1. Instalación y configuración de variables de entorno
 
 ```powershell
-# 1. Descargar la versión unificada de la rama Oscar
-git fetch origin
-git checkout Oscar
-git pull origin Oscar
-
-# 2. Instalar dependencias
+# 1. Instalar dependencias
 npm install
 
-# 3. Asegurar modo simulado (si no tienes archivo .env, usa mock por defecto)
+# 2. Crear tu archivo .env local a partir de la plantilla
 Copy-Item .env.example .env -Force
 
-# 4. Iniciar servidor de desarrollo (http://localhost:5173)
-npm run dev
-```
-En este modo puedes ingresar con cualquier correo/usuario válido (ej. `analista@siftc.edu.co` o `analista`) y cualquier contraseña válida de 6 a 64 caracteres (ej. `alza2026`).
-
----
-
-### Opción B — Modo Completo con Backend Real (`.NET 10` + `PostgreSQL 15` en Docker)
-
-Mientras el equipo de Backend incorpora en su repositorio los ajustes reportados en Docker (`SIFTC.Api.dll`) y el script de semilla UTF-8, incluimos un asistente automático en `docs/setup-backend/` para que cualquier compañero levante todo con un solo comando sin tocar código C#:
-
-#### Paso 1: Descargar la rama `Oscar` en `frontend-siftc`
-```powershell
-git fetch origin
-git checkout Oscar
-git pull origin Oscar
-```
-
-#### Paso 2: Ejecutar el script automático de preparación (con Docker Desktop abierto)
-```powershell
-powershell -ExecutionPolicy Bypass -File .\docs\setup-backend\preparar-backend.ps1
-```
-*(Si aún no tienes clonado `SIFTC`, el script lo clona automáticamente en `..\SIFTC`, crea `..\SIFTC\.env`, ajusta localmente `SIFTC.Api.dll` en el `dockerfile`, levanta los contenedores `siftc_database` y `siftc_api_csharp`, carga los roles y usuarios en UTF-8 puro y configura `.env` del frontend con `VITE_USE_MOCK=false`).*
-
-#### Paso 3: Iniciar el Frontend
-```powershell
-npm install
+# 3. Iniciar servidor de desarrollo (http://localhost:5173)
 npm run dev
 ```
 
-#### Credenciales reales cargadas en PostgreSQL
-| Rol | Correo / Usuario | Contraseña | Nombre en BD |
-| :--- | :--- | :--- | :--- |
-| **Analista financiero** | `analista@siftc.edu.co` *(o `analista`)* | `alza2026` | Juan Pérez |
-| **Administrador** | `admin@siftc.edu.co` *(o `admin`)* | `alza2026` | Oscar Administrador |
+### 2. Configuración de entorno (`.env`)
+
+- **Conectado al Backend desplegado en Render (por defecto en `.env.example`):**
+  ```env
+  VITE_API_URL=https://siftc.onrender.com
+  VITE_API_PREFIX=/api/v1
+  ```
+  El contrato oficial de la API publicada se encuentra documentado en [`docs/api/openapi-v1.json`](./docs/api/openapi-v1.json). El modo simulado (`USE_MOCK` / `VITE_USE_MOCK`) y el directorio `src/services/mocks/` de la primera entrega fueron eliminados por completo; todas las pantallas consultan únicamente la API externa (y muestran estados explícitos de carga o error si el servidor no responde).
 
 ---
 
 ## Scripts Disponibles
+
+> [!WARNING]
+> **Advertencia de seguridad — Scripts de diagnóstico (`scripts/`):** Todos los scripts de diagnóstico y exploración (`npm run diagnostico:api`, `npm run explorar:api`, `npm run ver:parametros`, `npm run probar:filtros`, `npm run ver:ohlc`) apuntan por defecto al backend en producción desplegado en Render (`https://siftc.onrender.com`). **No ejecutes estos scripts sin autorización previa ni los utilices para pruebas destructivas, de carga, inyección o fuerza bruta**, ya que interactúan directamente con el servicio publicado.
 
 | Comando | Descripción |
 | :--- | :--- |
@@ -77,13 +49,20 @@ npm run dev
 | `npm run lint` | Ejecuta validación estática ESLint sobre todo el proyecto. |
 | `npm run build` | Genera el empaquetado optimizado de producción en `dist/`. |
 | `npm run preview` | Sirve localmente el empaquetado de producción compilado. |
+| `npm run diagnostico:api` | Verifica la disponibilidad del servicio en Render y contrasta sus rutas OpenAPI con `src/services/endpoints.js`. |
+| `npm run explorar:api` | Inspecciona los esquemas de entrada y salida publicados en el OpenAPI del servidor. |
+| `npm run ver:parametros` | Lista los parámetros de consulta y enumeraciones declaradas en el OpenAPI. |
+| `npm run probar:filtros` | Prueba manualmente la respuesta de filtros del endpoint `/ranking`. |
+| `npm run ver:ohlc` | Inspecciona la estructura devuelta por `/entidades/{id}/ohlc`. |
 
 ---
 
 ## Documentación Técnica del Repositorio
 
+- [`docs/LOGIN_CONTEXT.md`](./docs/LOGIN_CONTEXT.md): Auditoría de seguridad ISO/IEC 27001:2022 (Control A.8.5), matriz de cumplimiento y contexto del módulo de Login.
+- [`docs/api/openapi-v1.json`](./docs/api/openapi-v1.json): Especificación OpenAPI 3.1.1 del servicio desplegado (fuente de verdad del contrato de la API).
 - [`DOC_PROYECTO_FRONTEND.md`](./DOC_PROYECTO_FRONTEND.md): Contexto funcional, alcance de Sprints y arquitectura.
 - [`DICCIONARIO_DATOS_FRONTEND.md`](./DICCIONARIO_DATOS_FRONTEND.md): Contrato de las 15 columnas CSV y 10 métricas núcleo.
 - [`MANUAL_MARCA_ALZA.md`](./MANUAL_MARCA_ALZA.md): Paleta cromática, tipografía y reglas de accesibilidad visual.
 - [`UNIFICACION_DISCREPANCIAS_EQUIPO.md`](./UNIFICACION_DISCREPANCIAS_EQUIPO.md): Integración de los aportes de Rafael, Reynel, Belén y Oscar.
-- [`SEGURIDAD_Y_VALIDACIONES_AUTENTICACION.md`](./SEGURIDAD_Y_VALIDACIONES_AUTENTICACION.md): Estándares OWASP, RFC 5322, UTF-8, tope de 10 intentos y validaciones en tiempo real.
+- [`SEGURIDAD_Y_VALIDACIONES_AUTENTICACION.md`](./SEGURIDAD_Y_VALIDACIONES_AUTENTICACION.md): Estándares de normalización UTF-8, tope de 10 intentos y validaciones de entrada.

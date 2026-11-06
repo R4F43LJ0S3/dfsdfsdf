@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getRanking, getSectores, getDimensiones, getPeriodos } from '../../services/api'
 import RankingTabla from './RankingTabla'
+import { PERIODO_POR_DEFECTO } from '../../constants/periodos'
 import './Ranking.css'
 
 // HU-FE-04 filtros del ranking
 
-const POR_DEFECTO = { sector: '', dimension: '', periodo: 'mensual', orden: 'ic', dir: 'desc' }
+const POR_DEFECTO = { sector: '', dimension: '', periodo: PERIODO_POR_DEFECTO, orden: 'ic', dir: 'desc' }
 const ORDENABLES = ['posicion', 'entidad', 'sector', 'ic', 'variacionPct']
 const ASC_PRIMERO = ['posicion', 'entidad', 'sector']
 
@@ -111,8 +112,16 @@ export default function Ranking() {
 
           <label className="campo">
             <span>Dimensión</span>
-            <select value={dimension} onChange={(e) => cambiar({ dimension: e.target.value })}>
-              <option value="">IC general</option>
+            {/* Sin métricas cargadas en el servidor no hay dimensiones que filtrar:
+                se deshabilita en vez de mostrar opciones que no harían nada. */}
+            <select
+              value={dimension}
+              onChange={(e) => cambiar({ dimension: e.target.value })}
+              disabled={catalogos.dimensiones.length === 0}
+            >
+              <option value="">
+                {catalogos.dimensiones.length === 0 ? 'Sin métricas cargadas' : 'IC general'}
+              </option>
               {catalogos.dimensiones.map((d) => (
                 <option key={d.id} value={d.nombre}>{d.nombre}</option>
               ))}
@@ -133,6 +142,12 @@ export default function Ranking() {
             Limpiar filtros
           </button>
         </div>
+        {catalogos.dimensiones.length === 0 && (
+          <p className="texto-suave" role="status">
+            El servidor todavía no tiene métricas cargadas, así que el filtro de dimensión no está
+            disponible. El ranking que ves usa el Índice de Competitividad general.
+          </p>
+        )}
         <p className="texto-suave nota-url">
           Los filtros quedan guardados en la dirección: si recargas o compartes el enlace, se conservan.
         </p>

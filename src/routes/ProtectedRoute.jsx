@@ -3,11 +3,11 @@ import { useAuth } from '../context/AuthContext'
 import { tieneRol } from '../constants/roles'
 
 export default function ProtectedRoute({ rolesPermitidos }) {
-  const { usuario } = useAuth()
+  const { usuario, estaAutenticado } = useAuth()
   const location = useLocation()
   const desde = location.pathname + location.search
 
-  if (!usuario) {
+  if (!estaAutenticado || !usuario) {
     return <Navigate to="/login" replace state={{ desde }} />
   }
 

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createChart, ColorType, CandlestickSeries, AreaSeries } from 'lightweight-charts';
-import { getEntidades, getOhlc, USA_DATOS_DE_EJEMPLO } from '../../services/api';
-import { mockOhlcData } from '../../services/mocks/ohlcMocks';
+import { getEntidades, getOhlc } from '../../services/api';
 import { useTema } from '../../context/ThemeContext';
+import { PERIODOS, PERIODO_POR_DEFECTO, nombrePeriodo } from '../../constants/periodos';
 import { num, pct, fechaIso } from '../../utils/format';
 import './FinancialChart.css';
 
@@ -15,23 +15,18 @@ const PALETTE = {
   textoGris: '#5A6375',
 };
 
-const ENTIDAD_INICIAL = {
-  codigo_entidad: 'ENT002',
-  nombre_entidad: 'Entidad Beta',
-  sector: 'Finanzas',
-  indice_competitividad: 78.5,
-  variacion_porcentual: 1.55,
-};
-
 export const FinancialChart = ({ entidadNombre, ticker }) => {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [listaEntidades, setListaEntidades] = useState([]);
-  const [serieOhlc, setSerieOhlc] = useState(mockOhlcData);
+  const [cargandoEntidades, setCargandoEntidades] = useState(true);
+  const [serieOhlc, setSerieOhlc] = useState([]);
+  const [cargandoOhlc, setCargandoOhlc] = useState(false);
+  const [errorOhlc, setErrorOhlc] = useState('');
   const [tipoGrafica, setTipoGrafica] = useState('velas');
-  const [periodo, setPeriodo] = useState('1M');
+  const [periodo, setPeriodo] = useState(PERIODO_POR_DEFECTO);
   const [hoverData, setHoverData] = useState(null);
 
   const parametroUrl = searchParams.get('entidad');
@@ -40,22 +35,31 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
     let activo = true;
     getEntidades()
       .then((lista) => {
-        if (activo && Array.isArray(lista)) setListaEntidades(lista);
+        if (!activo) return;
+        if (Array.isArray(lista) && lista.length > 0) {
+          setListaEntidades(lista);
+          setErrorOhlc('');
+        } else {
+          setListaEntidades([]);
+          setErrorOhlc('No hay entidades disponibles en el servidor.');
+        }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (!activo) return;
+        console.error('[Gráfica] Error consultando entidades:', err?.message);
+        setListaEntidades([]);
+        setErrorOhlc('No se pudo conectar con el servidor para cargar las entidades.');
+      })
+      .finally(() => {
+        if (activo) setCargandoEntidades(false);
+      });
     return () => {
       activo = false;
     };
   }, []);
 
   const entidadActiva = useMemo(() => {
-    if (listaEntidades.length === 0) {
-      return {
-        ...ENTIDAD_INICIAL,
-        nombre_entidad: entidadNombre ?? ENTIDAD_INICIAL.nombre_entidad,
-        codigo_entidad: ticker ? ticker.replace('-', '0') : ENTIDAD_INICIAL.codigo_entidad,
-      };
-    }
+    if (listaEntidades.length === 0) return null;
     if (parametroUrl) {
       const buscado = parametroUrl.trim().toUpperCase();
       const limpio = buscado.replace('-', '');
@@ -68,24 +72,49 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
       );
       if (encontrada) return encontrada;
     }
-    return listaEntidades[1] ?? listaEntidades[0];
-  }, [listaEntidades, parametroUrl, entidadNombre, ticker]);
+    return listaEntidades[0];
+  }, [listaEntidades, parametroUrl]);
+
+  // El endpoint GET /api/v1/entidades/{id}/ohlc exige que {id} tenga formato UUID
+  const idConsulta = entidadActiva?.id ?? null;
 
   useEffect(() => {
+    if (!idConsulta) return undefined;
     let activo = true;
-    const idConsulta = entidadActiva.id ?? entidadActiva.codigo_entidad;
+
+    Promise.resolve().then(() => {
+      if (!activo) return;
+      setCargandoOhlc(true);
+      setErrorOhlc('');
+    });
+
     getOhlc(idConsulta, periodo)
       .then((datos) => {
-        if (activo && Array.isArray(datos) && datos.length > 0) {
+        if (!activo) return;
+        if (Array.isArray(datos) && datos.length > 0) {
           setSerieOhlc(datos);
+          setErrorOhlc('');
           setHoverData(null);
+        } else {
+          console.warn(`[Gráfica] Sin serie OHLC para ${idConsulta} (${periodo}).`);
+          setSerieOhlc([]);
+          setErrorOhlc('No hay datos históricos OHLC disponibles para esta entidad en el periodo seleccionado.');
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (!activo) return;
+        console.error(`[Gráfica] Error pidiendo OHLC de ${idConsulta} (${periodo}):`, err?.message);
+        setSerieOhlc([]);
+        setErrorOhlc('No se pudo cargar la serie OHLC desde el servidor.');
+      })
+      .finally(() => {
+        if (activo) setCargandoOhlc(false);
+      });
+
     return () => {
       activo = false;
     };
-  }, [entidadActiva.id, entidadActiva.codigo_entidad, periodo]);
+  }, [idConsulta, periodo]);
 
   // Colores de la gráfica según el tema (claro u oscuro)
   const { tema } = useTema();
@@ -116,7 +145,7 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
       };
 
   useEffect(() => {
-    if (!chartContainerRef.current || serieOhlc.length === 0) return;
+    if (!chartContainerRef.current || serieOhlc.length === 0) return undefined;
 
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
@@ -190,19 +219,24 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
     setSearchParams({ entidad: nuevoCodigo });
   };
 
+  const cargando = cargandoEntidades || cargandoOhlc;
+  const nombreMostrado = entidadActiva?.nombre_entidad ?? entidadNombre ?? (cargando ? 'Cargando…' : 'Sin entidad');
+  const codigoMostrado = entidadActiva?.codigo_entidad ?? ticker ?? '—';
+  const sectorMostrado = entidadActiva?.sector ?? '—';
+
   const ultimoDato = serieOhlc[serieOhlc.length - 1];
   const datoMostrar = hoverData || ultimoDato;
-  const variacionEntidad = entidadActiva.variacion_porcentual ?? 0;
-  const sube = variacionEntidad > 0;
-  const baja = variacionEntidad < 0;
-  const simboloVar = sube ? '▲' : baja ? '▼' : '–';
+  const variacionEntidad = entidadActiva?.variacion_porcentual ?? null;
+  const sube = Number(variacionEntidad) > 0;
+  const baja = Number(variacionEntidad) < 0;
+  const simboloVar = variacionEntidad === null ? '–' : sube ? '▲' : baja ? '▼' : '–';
   const claseVariacion = baja ? 'baja' : !sube ? 'igual' : '';
 
   const variacionVela = datoMostrar && datoMostrar.open
     ? ((datoMostrar.close - datoMostrar.open) / datoMostrar.open) * 100
-    : variacionEntidad;
-  const subeVela = variacionVela > 0;
-  const bajaVela = variacionVela < 0;
+    : null;
+  const subeVela = Number(variacionVela) > 0;
+  const bajaVela = Number(variacionVela) < 0;
 
   return (
     <div className="grafica-wrapper">
@@ -210,11 +244,11 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
         {/* Cabecera superior */}
         <div className="grafica-header-top">
           <div>
-            <div className="grafica-breadcrumb">Gráficas / {entidadActiva.nombre_entidad}</div>
+            <div className="grafica-breadcrumb">Gráficas / {nombreMostrado}</div>
             <div className="grafica-title-row">
-              <h1 className="grafica-title">{entidadActiva.nombre_entidad}</h1>
-              <span className="grafica-ticker mono-num">{entidadActiva.codigo_entidad}</span>
-              <span className="grafica-badge-finanzas">{entidadActiva.sector}</span>
+              <h1 className="grafica-title">{nombreMostrado}</h1>
+              <span className="grafica-ticker mono-num">{codigoMostrado}</span>
+              <span className="grafica-badge-finanzas">{sectorMostrado}</span>
             </div>
           </div>
 
@@ -226,20 +260,25 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
               <select
                 id="selector-entidad-grafica"
                 className="grafica-select-entidad"
-                value={entidadActiva.codigo_entidad}
+                value={entidadActiva?.codigo_entidad ?? ''}
                 onChange={handleEntidadChange}
+                disabled={listaEntidades.length === 0}
               >
-                {(listaEntidades.length > 0 ? listaEntidades : [entidadActiva]).map((ent) => (
-                  <option key={ent.codigo_entidad} value={ent.codigo_entidad}>
-                    {ent.nombre_entidad} · {ent.codigo_entidad}
-                  </option>
-                ))}
+                {listaEntidades.length === 0 ? (
+                  <option value="">{cargandoEntidades ? 'Cargando entidades…' : 'Sin entidades'}</option>
+                ) : (
+                  listaEntidades.map((ent) => (
+                    <option key={ent.codigo_entidad} value={ent.codigo_entidad}>
+                      {ent.nombre_entidad} · {ent.codigo_entidad}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 
             <div className="grafica-price-display-box">
               <span className="grafica-main-value mono-num">
-                {num(entidadActiva.indice_competitividad, 1)}
+                {num(entidadActiva?.indice_competitividad, 1)}
               </span>
               <span className={`grafica-main-change mono-num ${claseVariacion}`}>
                 {simboloVar} {pct(variacionEntidad)}
@@ -268,27 +307,75 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
           </div>
 
           <div className="grafica-period-group" role="group" aria-label="Periodo de tiempo">
-            {['1D', '1S', '1M', '1A', 'Máx.'].map((p) => (
+            {PERIODOS.map((p) => (
               <button
                 type="button"
-                key={p}
-                onClick={() => setPeriodo(p)}
-                className={`grafica-period-btn ${periodo === p ? 'active' : ''}`}
+                key={p.id}
+                onClick={() => setPeriodo(p.id)}
+                className={`grafica-period-btn ${periodo === p.id ? 'active' : ''}`}
               >
-                {p}
+                {p.nombre}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Lienzo de la Gráfica */}
-        <div ref={chartContainerRef} style={{ width: '100%', borderRadius: '12px', overflow: 'hidden' }} />
+        {/* Lienzo de la Gráfica o Estados de Carga / Error */}
+        {cargando && serieOhlc.length === 0 && (
+          <div
+            role="status"
+            style={{
+              height: '400px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px',
+              border: '1px dashed var(--color-border)',
+              color: 'var(--color-text-muted)',
+              fontSize: '15px',
+            }}
+          >
+            Cargando serie histórica OHLC…
+          </div>
+        )}
+
+        {!cargando && errorOhlc && (
+          <div
+            role="alert"
+            style={{
+              height: '400px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px',
+              border: '1px solid var(--rojo-bajada, #D9534F)',
+              backgroundColor: 'rgba(217, 83, 79, 0.08)',
+              color: 'var(--rojo-bajada, #D9534F)',
+              padding: '24px',
+              textAlign: 'center',
+              fontSize: '15px',
+              fontWeight: 500,
+            }}
+          >
+            {errorOhlc}
+          </div>
+        )}
+
+        <div
+          ref={chartContainerRef}
+          style={{
+            width: '100%',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            display: serieOhlc.length > 0 ? 'block' : 'none',
+          }}
+        />
 
         {/* Tarjetas inferiores OHLC */}
         <div className="grafica-cards-grid">
           <div className="grafica-stat-card">
             <span className="grafica-stat-label">Fecha</span>
-            <strong className="grafica-stat-value mono-num">{fechaIso(datoMostrar?.time)}</strong>
+            <strong className="grafica-stat-value mono-num">{fechaIso(datoMostrar?.time) || '—'}</strong>
           </div>
           <div className="grafica-stat-card">
             <span className="grafica-stat-label">Apertura</span>
@@ -307,15 +394,14 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
             <div className="grafica-stat-val-row">
               <strong className="grafica-stat-value mono-num">{num(datoMostrar?.close, 1)}</strong>
               <span className={`grafica-stat-change-tag mono-num ${bajaVela ? 'baja' : !subeVela ? 'igual' : ''}`}>
-                {subeVela ? '▲' : bajaVela ? '▼' : '–'} {pct(variacionVela)}
+                {variacionVela === null ? '–' : subeVela ? '▲' : bajaVela ? '▼' : '–'} {pct(variacionVela)}
               </span>
             </div>
           </div>
         </div>
 
         <div className="grafica-footer-note">
-          {USA_DATOS_DE_EJEMPLO ? 'Datos de ejemplo · ' : ''}
-          Serie diaria del Índice de Competitividad ({periodo}) · Pasa el cursor sobre la gráfica para ver el detalle de cada sesión.
+          Serie del Índice de Competitividad ({nombrePeriodo(periodo)}) · Pasa el cursor sobre la gráfica para ver el detalle de cada sesión.
         </div>
       </div>
     </div>
