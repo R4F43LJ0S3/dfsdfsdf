@@ -24,7 +24,7 @@ function CambioPosicion({ valor }) {
   )
 }
 
-export default function RankingTabla({ filas, total, orden, dir, dimension, periodo, cargando, onOrdenar }) {
+export default function RankingTabla({ filas, total, orden, dir, dimension, periodo, periodoId, cargando, onOrdenar }) {
   if (filas.length === 0) {
     return <p className="estado tarjeta">No hay entidades con esos filtros.</p>
   }
@@ -71,7 +71,7 @@ export default function RankingTabla({ filas, total, orden, dir, dimension, peri
                 <td className="mono-num posicion">{f.posicion}</td>
                 <td><CambioPosicion valor={f.cambioPosicion} /></td>
                 <td>
-                  <Link to={`/grafica?entidad=${f.entidadId}`} className="entidad">
+                  <Link to={`/grafica?entidad=${f.entidadId}${periodoId ? `&periodo=${periodoId}` : ''}`} className="entidad">
                     <strong>{f.entidad}</strong>
                   </Link>
                 </td>

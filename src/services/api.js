@@ -150,10 +150,10 @@ export async function getEntidad(id) {
 // Calcula el resumen agregado del Índice General a partir de los registros reales de GET /api/v1/entidades
 export async function getIndiceGeneral() {
   const lista = await getEntidades()
-  const validas = lista.filter((e) => Number.isFinite(e.indice_competitividad))
+  const validas = lista.filter((e) => Number.isFinite(e.ic ?? e.indice_competitividad))
   if (validas.length === 0) throw new Error('Sin entidades disponibles en el servidor para calcular el índice general.')
-  const prom = (campo) => validas.reduce((s, e) => s + (Number(e[campo]) || 0), 0) / validas.length
-  const valor = prom('indice_competitividad')
+  const prom = (campo, alt) => validas.reduce((s, e) => s + (Number(e[campo] ?? (alt ? e[alt] : 0)) || 0), 0) / validas.length
+  const valor = prom('ic', 'indice_competitividad')
   const puntos = prom('variacion')
   const anterior = valor - puntos
   return {
@@ -167,7 +167,7 @@ export async function getIndiceGeneral() {
 // Obtiene las 5 entidades con mayor alza y 5 con mayor baja a partir de GET /api/v1/entidades
 export async function getTop() {
   const lista = await getEntidades()
-  const orden = [...lista].sort((a, b) => b.variacion_porcentual - a.variacion_porcentual)
+  const orden = [...lista].sort((a, b) => Number(b.variacionPct ?? b.variacion_porcentual ?? 0) - Number(a.variacionPct ?? a.variacion_porcentual ?? 0))
   return { ganadores: orden.slice(0, 5), perdedores: orden.slice(-5).reverse() }
 }
 

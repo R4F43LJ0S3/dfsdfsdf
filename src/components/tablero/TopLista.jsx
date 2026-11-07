@@ -7,19 +7,25 @@ export default function TopLista({ titulo, entidades }) {
     <section className="tarjeta">
       <h2 className="titulo-lista">{titulo}</h2>
       <ol className="lista-top">
-        {entidades.map((e, i) => (
-          <li key={e.codigo_entidad}>
-            <Link to={`/grafica?entidad=${e.codigo_entidad}`} className="fila-top">
-              <span className="pos">{i + 1}</span>
-              <span className="fila-nombre">
-                <strong>{e.nombre_entidad}</strong>
-                <small>{e.codigo_entidad} · {e.sector}</small>
-              </span>
-              <span className="mono-num">{num(e.indice_competitividad, 1)}</span>
-              <Variacion valor={e.variacion_porcentual} />
-            </Link>
-          </li>
-        ))}
+        {entidades.map((e, i) => {
+          const codigo = e.codigo ?? e.codigo_entidad
+          const nombre = e.nombre ?? e.nombre_entidad
+          const ic = e.ic ?? e.indice_competitividad
+          const varPct = e.variacionPct ?? e.variacion_porcentual
+          return (
+            <li key={codigo}>
+              <Link to={`/grafica?entidad=${codigo}`} className="fila-top">
+                <span className="pos">{i + 1}</span>
+                <span className="fila-nombre">
+                  <strong>{nombre}</strong>
+                  <small>{codigo} · {e.sector}</small>
+                </span>
+                <span className="mono-num">{num(ic, 1)}</span>
+                <Variacion valor={varPct} />
+              </Link>
+            </li>
+          )
+        })}
       </ol>
     </section>
   )

@@ -4,12 +4,15 @@ import logoAlza from '../../assets/logo-alza.png'
 import logoAlzaOscuro from '../../assets/logo-alza-oscuro.png'
 import Ticker from '../ticker/Ticker'
 import BotonTema from '../common/BotonTema'
+import { ROLES, tieneRol } from '../../constants/roles'
 import './Layout.css'
 
 export default function Layout() {
   const { usuario, logout } = useAuth()
   const nombre = usuario?.nombre ?? usuario?.usuario ?? ''
   const navigate = useNavigate()
+  // El enlace de administración solo se muestra al Administrador (HU-FE-07 CA 2)
+  const esAdmin = tieneRol(usuario, [ROLES.ADMINISTRADOR])
 
   const salir = () => {
     logout()
@@ -25,6 +28,8 @@ export default function Layout() {
           <NavLink to="/dashboard">Tablero</NavLink>
           <NavLink to="/grafica">Gráficas</NavLink>
           <NavLink to="/ranking">Ranking</NavLink>
+          <NavLink to="/comparar">Comparar</NavLink>
+          {esAdmin && <NavLink to="/administracion">Administración</NavLink>}
         </nav>
         <div className="nav-acciones">
           <BotonTema />

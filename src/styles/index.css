@@ -70,3 +70,13 @@ input, select, textarea {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+
+/* Oculta la marca de agua y enlaces externos de TradingView en todas las gráficas */
+a[href*="tradingview"],
+div[class*="tv-logo"],
+[data-name="tradingview-logo"] {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}

@@ -27,3 +27,9 @@
   .nav-user-info { display:none; }
   .nav-salir { padding:8px 12px; }
 }
+
+/* HU-FE-05: con el 4.º enlace (Comparar) el menú no cabía en 360 px; se reduce el espacio entre enlaces */
+@media (max-width:400px) {
+  .nav-links { gap:4px; }
+  .nav-links a { padding:10px 4px; }
+}

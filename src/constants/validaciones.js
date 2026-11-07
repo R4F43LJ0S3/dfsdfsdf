@@ -246,3 +246,75 @@ export function validarPasswordAcceso(valor = '') {
 
   return { valido: true, error: null }
 }
+
+
+// ============================================================================
+// HU-FE-07: validaciones del modulo de administracion (usuarios y pesos)
+// ============================================================================
+
+// Nombre o apellido: letras (con tildes y enie), espacio, guion o apostrofo. Max 30 (VARCHAR(30))
+const REGEX_NOMBRE_PERSONA = /^[A-Za-zÁÉÍÓÚáéíóúÑñÜü]+([ '-][A-Za-zÁÉÍÓÚáéíóúÑñÜü]+)*$/
+
+export function validarNombrePersona(valor = '', etiqueta = 'El nombre') {
+  const texto = String(valor).normalize('NFC').trim()
+  if (!texto) return { valido: false, error: `${etiqueta} es obligatorio.` }
+  if (texto.length > LIMITES_CAMPOS.NOMBRE_MAX) {
+    return { valido: false, error: `${etiqueta} no puede superar ${LIMITES_CAMPOS.NOMBRE_MAX} caracteres.` }
+  }
+  if (!REGEX_NOMBRE_PERSONA.test(texto)) {
+    return { valido: false, error: `${etiqueta} solo admite letras y un espacio entre palabras.` }
+  }
+  return { valido: true, error: null }
+}
+
+// Para crear usuarios se exige correo completo (con @), no alias
+export function validarCorreoUsuario(valor = '') {
+  const texto = String(valor).normalize('NFC').trim()
+  if (!texto) return { valido: false, error: 'El correo es obligatorio.' }
+  if (!texto.includes('@')) return { valido: false, error: 'Escribe un correo completo (ej: nombre@siftc.edu.co).' }
+  return validarIdentificadorAcceso(texto)
+}
+
+// Contrasena nueva al crear usuario: reglas de acceso + minimo 8 y letras con numeros
+export function validarPasswordNueva(valor = '') {
+  if (!valor) return { valido: false, error: 'La contraseña inicial es obligatoria.' }
+  const base = validarPasswordAcceso(valor)
+  if (!base.valido) return base
+  if (valor.length < 8) return { valido: false, error: 'La contraseña nueva debe tener al menos 8 caracteres.' }
+  if (!/[A-Za-zÑñ]/.test(valor) || !/\d/.test(valor)) {
+    return { valido: false, error: 'La contraseña nueva debe combinar letras y números.' }
+  }
+  return { valido: true, error: null }
+}
+
+// Pesos de las dimensiones del indice: cada uno de 0 a 100 %, maximo 1 decimal, y todos deben sumar 100 %.
+// En la base de datos (analitica.dim_dimension.peso_ic, NUMERIC(4,3)) se guardan de 0 a 1 con 3 decimales:
+// 25,5 % en pantalla = 0.255 en la base. Por eso en pantalla solo se permite 1 decimal.
+export const PESOS = Object.freeze({ TOTAL: 100, MIN: 0, MAX: 100, DECIMALES: 1 })
+
+// Se trabaja en centesimas (enteros) para que 33.3 + 33.3 + 33.4 de 100 exacto, sin errores de coma flotante
+export const aCentesimas = (valor) => Math.round(Number(String(valor).replace(',', '.')) * 100)
+
+export function validarPeso(valor) {
+  const texto = String(valor ?? '').trim().replace(',', '.')
+  if (texto === '') return { valido: false, error: 'Obligatorio' }
+  if (!/^\d{1,3}(\.\d)?$/.test(texto)) return { valido: false, error: 'Usa un número con máximo 1 decimal' }
+  const n = Number(texto)
+  if (n < PESOS.MIN || n > PESOS.MAX) return { valido: false, error: 'Debe estar entre 0 y 100' }
+  return { valido: true, error: null }
+}
+
+export function sumarPesos(pesos = []) {
+  return pesos.reduce((acc, p) => acc + (validarPeso(p.peso).valido ? aCentesimas(p.peso) : 0), 0) / 100
+}
+
+export function validarPesos(pesos = []) {
+  if (pesos.some((p) => !validarPeso(p.peso).valido)) {
+    return { valido: false, error: 'Revisa los pesos marcados en rojo.' }
+  }
+  const total = pesos.reduce((acc, p) => acc + aCentesimas(p.peso), 0)
+  if (total !== PESOS.TOTAL * 100) {
+    return { valido: false, error: `Los pesos deben sumar exactamente ${PESOS.TOTAL} %. Ahora suman ${(total / 100).toLocaleString('es-CO')} %.` }
+  }
+  return { valido: true, error: null }
+}

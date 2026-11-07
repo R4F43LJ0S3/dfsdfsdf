@@ -165,6 +165,7 @@ export default function Ranking() {
           dir={dir}
           dimension={dimension}
           periodo={nombrePeriodo}
+          periodoId={periodo}
           cargando={cargando}
           onOrdenar={ordenarPor}
         />

@@ -20,8 +20,8 @@ export default function Tablero() {
   if (!datos) return <p className="estado" aria-live="polite">Cargando tablero…</p>
 
   const { indice, top, entidades } = datos
-  const suben = entidades.filter((e) => e.variacion_porcentual > 0).length
-  const bajan = entidades.filter((e) => e.variacion_porcentual < 0).length
+  const suben = entidades.filter((e) => (e.variacionPct ?? e.variacion_porcentual) > 0).length
+  const bajan = entidades.filter((e) => (e.variacionPct ?? e.variacion_porcentual) < 0).length
   const mayorSubida = top.ganadores?.[0]
   const mayorBajada = top.perdedores?.[0]
 
@@ -50,20 +50,20 @@ export default function Tablero() {
 
           <div className="resumen-destacados">
             {mayorSubida && (
-              <Link to={`/grafica?entidad=${mayorSubida.codigo_entidad}`} className="resumen-bloque">
+              <Link to={`/grafica?entidad=${mayorSubida.codigo ?? mayorSubida.codigo_entidad}`} className="resumen-bloque">
                 <span className="etiqueta">Mayor subida</span>
                 <div className="resumen-fila">
-                  <strong>{mayorSubida.nombre_entidad}</strong>
-                  <Variacion valor={mayorSubida.variacion_porcentual} />
+                  <strong>{mayorSubida.nombre ?? mayorSubida.nombre_entidad}</strong>
+                  <Variacion valor={mayorSubida.variacionPct ?? mayorSubida.variacion_porcentual} />
                 </div>
               </Link>
             )}
             {mayorBajada && (
-              <Link to={`/grafica?entidad=${mayorBajada.codigo_entidad}`} className="resumen-bloque">
+              <Link to={`/grafica?entidad=${mayorBajada.codigo ?? mayorBajada.codigo_entidad}`} className="resumen-bloque">
                 <span className="etiqueta">Mayor bajada</span>
                 <div className="resumen-fila">
-                  <strong>{mayorBajada.nombre_entidad}</strong>
-                  <Variacion valor={mayorBajada.variacion_porcentual} />
+                  <strong>{mayorBajada.nombre ?? mayorBajada.nombre_entidad}</strong>
+                  <Variacion valor={mayorBajada.variacionPct ?? mayorBajada.variacion_porcentual} />
                 </div>
               </Link>
             )}
