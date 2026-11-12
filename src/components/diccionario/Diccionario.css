@@ -1,0 +1,681 @@
+/* HU-DD-08: Diccionario de Datos y Glosario Oficial — Clean Financial Design (ALZA) */
+
+.dic-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dic-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dic-encabezado-izq {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dic-encabezado h1 {
+  margin: 0;
+  font-size: clamp(1.30rem, 1.8vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-on-light);
+}
+
+.dic-contador-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(58, 108, 168, 0.10);
+  color: var(--color-azul-acero);
+  border: 1px solid rgba(58, 108, 168, 0.22);
+}
+
+.dic-acceso {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--superficie, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
+
+.dic-acceso svg {
+  color: var(--color-azul-acero);
+  flex-shrink: 0;
+}
+
+.dic-acceso-rol {
+  font-weight: 600;
+  color: var(--color-text-on-light);
+}
+
+.dic-acceso-niveles {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* Barra de herramientas: buscador (36px) + segmented control */
+.dic-controles {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--superficie, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.dic-buscador {
+  flex: 1 1 280px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  background: var(--fondo, #F8F9FA);
+}
+
+.dic-buscador:focus-within {
+  border-color: var(--color-azul-acero);
+  background: var(--superficie, #ffffff);
+}
+
+.dic-buscador-icono {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dic-buscador input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--color-text-on-light);
+  font-size: 13px;
+  outline: none;
+}
+
+.dic-buscador-limpiar {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.dic-buscador-limpiar:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-on-light);
+}
+
+/* Segmented control para tipo de entrada */
+.dic-tipos {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 6px;
+  background: #F1F3F5;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+}
+
+.dic-tipo-btn {
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.dic-tipo-btn:hover {
+  color: var(--color-text-on-light);
+}
+
+.dic-tipo-btn.activo {
+  background: #ffffff;
+  color: var(--color-text-on-light);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Accesos rápidos */
+.dic-sugerencias {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dic-sugerencias-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-right: 2px;
+}
+
+.dic-sugerencia-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--superficie, #ffffff);
+  color: var(--color-text-on-light);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.dic-sugerencia-btn:hover {
+  border-color: var(--color-azul-acero);
+  color: var(--color-azul-acero);
+}
+
+/* Grid de tarjetas */
+.dic-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 12px;
+}
+
+.dic-item {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  background: var(--superficie, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.dic-item:hover {
+  border-color: var(--color-azul-acero);
+  background: rgba(58, 108, 168, 0.015);
+}
+
+.dic-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dic-item-etiquetas,
+.dic-ficha-etiquetas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dic-item-flecha {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.dic-item-nombre {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--color-text-on-light);
+}
+
+.dic-item-desc {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.83rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dic-item-meta {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.dic-item-formula {
+  font-family: var(--font-mono);
+  color: var(--color-text-on-light);
+  background: rgba(0, 0, 0, 0.03);
+  padding: 2px 6px;
+  border-radius: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chips y etiquetas */
+.dic-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dic-tipo-métrica,
+.dic-tipo-metrica {
+  background: rgba(58, 108, 168, 0.12);
+  color: var(--color-azul-acero);
+}
+
+.dic-tipo-término,
+.dic-tipo-termino {
+  background: rgba(39, 174, 96, 0.12);
+  color: var(--color-bullish);
+}
+
+.dic-tipo-atributo {
+  background: rgba(242, 201, 76, 0.18);
+  color: #9A6A06;
+}
+
+.dic-sens-publico {
+  background: rgba(39, 174, 96, 0.10);
+  color: var(--color-bullish);
+}
+
+.dic-sens-interno {
+  background: rgba(58, 108, 168, 0.10);
+  color: var(--color-azul-acero);
+}
+
+.dic-sens-confidencial {
+  background: rgba(242, 201, 76, 0.18);
+  color: #9A6A06;
+}
+
+.dic-sens-restringido {
+  background: rgba(235, 87, 87, 0.12);
+  color: var(--color-bearish);
+}
+
+.dic-chip-suave {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-on-light);
+  text-transform: none;
+  font-weight: 600;
+  font-size: 0.74rem;
+}
+
+.dic-codigo,
+.dic-id,
+.dic-tecnico {
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-on-light);
+}
+
+/* Estado vacío */
+.dic-vacio {
+  background: var(--superficie, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dic-vacio p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.dic-btn-primario,
+.dic-btn-secundario {
+  height: 36px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dic-btn-primario {
+  border: 1px solid var(--color-azul-acero);
+  background: var(--color-azul-acero);
+  color: #ffffff;
+}
+
+.dic-btn-secundario {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--superficie, #ffffff);
+  color: var(--color-text-on-light);
+}
+
+/* Modal de ficha completa */
+.dic-modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1100;
+}
+
+.dic-ficha {
+  width: min(640px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--superficie, #ffffff);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dic-ficha-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dic-ficha-cerrar {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  color: var(--color-text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dic-ficha-titulo {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--color-text-on-light);
+}
+
+.dic-ficha-tecnico {
+  margin: -4px 0 0;
+  font-size: 0.80rem;
+  color: var(--color-text-muted);
+}
+
+.dic-ficha-tecnico code {
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--color-text-on-light);
+}
+
+.dic-ficha-descripcion {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--color-text-on-light);
+  font-size: 0.88rem;
+}
+
+.dic-ficha-linea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.80rem;
+  color: var(--color-text-muted);
+}
+
+.dic-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dic-bloque {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dic-bloque-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.dic-formula {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  color: var(--color-azul-acero);
+  background: var(--superficie, #ffffff);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  word-break: break-word;
+}
+
+.dic-bloque-texto,
+.dic-bloque-nota {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--color-text-on-light);
+}
+
+.dic-ficha-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 8px;
+}
+
+.dic-ficha-grid > div {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.dic-ficha-grid dt {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.dic-ficha-grid dd {
+  margin: 3px 0 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-text-on-light);
+}
+
+.dic-ficha-usado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.80rem;
+  color: var(--color-text-muted);
+}
+
+.dic-ficha-relacionados {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.dic-relacionado-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(58, 108, 168, 0.28);
+  background: rgba(58, 108, 168, 0.08);
+  color: var(--color-azul-acero);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dic-relacionado-btn:hover {
+  background: rgba(58, 108, 168, 0.16);
+}
+
+.dic-ficha-pie {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Modo oscuro */
+html[data-theme='dark'] .dic-acceso,
+html[data-theme='dark'] .dic-controles,
+html[data-theme='dark'] .dic-item,
+html[data-theme='dark'] .dic-sugerencia-btn,
+html[data-theme='dark'] .dic-vacio {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .dic-buscador {
+  background: #0E1424;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+html[data-theme='dark'] .dic-tipos {
+  background: #0E1424;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .dic-tipo-btn.activo {
+  background: #1A243B;
+  color: #F8FAFC;
+}
+
+html[data-theme='dark'] .dic-item-meta,
+html[data-theme='dark'] .dic-ficha-pie {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .dic-codigo,
+html[data-theme='dark'] .dic-id,
+html[data-theme='dark'] .dic-tecnico,
+html[data-theme='dark'] .dic-chip-suave,
+html[data-theme='dark'] .dic-item-formula,
+html[data-theme='dark'] .dic-ficha-tecnico code {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='dark'] .dic-ficha {
+  background: #151D33;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme='dark'] .dic-bloque,
+html[data-theme='dark'] .dic-ficha-grid > div {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .dic-formula {
+  background: #0E1424;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #8DB8E8;
+}
+
+html[data-theme='dark'] .dic-sens-confidencial,
+html[data-theme='dark'] .dic-tipo-atributo {
+  color: #F4CF7A;
+}
+
+@media (max-width: 640px) {
+  .dic-controles {
+    padding: 12px;
+  }
+  .dic-item {
+    padding: 14px;
+  }
+  .dic-ficha {
+    padding: 16px;
+  }
+}

@@ -16,108 +16,84 @@
 
 .grafica-card-container {
   background-color: var(--superficie, #FFFFFF);
-  border-radius: 20px;
-  padding: 32px 36px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
-/* Cabecera Superior */
+html[data-theme='dark'] .grafica-card-container {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+/* Cabecera Superior Unificada */
 .grafica-header-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 28px;
+  align-items: center;
+  margin-bottom: 16px;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 16px;
 }
 
-.grafica-breadcrumb {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  margin-bottom: 8px;
+.grafica-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .grafica-title-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .grafica-title {
   color: var(--color-text-on-light);
-  font-size: 32px;
+  font-size: clamp(1.30rem, 1.8vw, 1.55rem);
   font-weight: 700;
   margin: 0;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.02em;
 }
 
 .grafica-ticker {
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .grafica-badge-finanzas {
-  background-color: var(--color-azul-acero-light);
-  color: var(--color-azul-acero);
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* Lado Derecho: Selector de Entidad y Precio */
-.grafica-header-right-group {
-  display: flex;
-  align-items: flex-end;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-
-.grafica-entidad-selector-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.grafica-selector-label {
-  font-size: 12px;
+  background-color: #F1F3F5;
   color: var(--color-text-muted);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.grafica-select-entidad {
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1.5px solid var(--color-border);
-  background-color: var(--superficie, #FFFFFF);
-  color: var(--color-text-on-light);
-  font-size: 14px;
-  font-weight: 500;
-  outline: none;
-  cursor: pointer;
-  min-width: 220px;
+html[data-theme='dark'] .grafica-badge-finanzas {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #A9B3CA;
 }
 
-.grafica-select-entidad:focus-visible {
-  border-color: var(--color-azul-acero);
-}
-
+/* Bloque de Precio y Variación (junto al título) */
 .grafica-price-display-box {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
-  gap: 12px;
-  padding-bottom: 2px;
-  flex-wrap: wrap;
+  gap: 8px;
+  padding-left: 2px;
 }
 
 .grafica-main-value {
-  font-size: 36px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-text-on-light);
   line-height: 1;
@@ -127,9 +103,9 @@
   background-color: var(--color-bullish-bg);
   color: var(--color-bullish);
   border: 1px solid var(--color-bullish-border);
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -145,105 +121,195 @@
   border-color: var(--color-border);
 }
 
-/* Fila de Controles (Velas/Línea y Periodos) */
+/* Lado Derecho: Selector Limpio de Entidad */
+.grafica-header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.grafica-select-entidad {
+  min-height: 34px;
+  height: 34px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background-color: var(--superficie, #FFFFFF);
+  color: var(--color-text-on-light);
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  min-width: 210px;
+}
+
+html[data-theme='dark'] .grafica-select-entidad {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.grafica-select-entidad:focus-visible {
+  border-color: var(--color-azul-acero);
+}
+
+/* ==========================================================================
+   Layout Split de Terminal (>= 1100px)
+   ========================================================================== */
+.grafica-terminal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 1100px) {
+  .grafica-terminal-grid {
+    grid-template-columns: minmax(0, 1.65fr) minmax(340px, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+.grafica-terminal-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.grafica-terminal-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Fila de Controles (Velas/Línea y Periodos como Segmented Controls) */
 .grafica-controls-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 10px;
 }
 
 .grafica-type-toggle {
-  background-color: #E2E8F0;
-  padding: 4px;
-  border-radius: 12px;
-  display: flex;
-  gap: 4px;
+  background-color: #F1F3F5;
+  padding: 3px;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 2px;
 }
 
 .grafica-toggle-btn {
   border: none;
-  min-height: 40px;
-  padding: 8px 20px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   background-color: transparent;
-  color: var(--color-text-on-light);
-  transition: all 0.2s;
+  color: var(--color-text-muted);
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .grafica-toggle-btn.active {
-  background-color: var(--nav-activo, #151D33);
-  color: #FFFFFF;
+  background-color: #FFFFFF;
+  color: var(--color-text-on-light);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .grafica-period-group {
-  display: flex;
-  gap: 6px;
+  background-color: #F1F3F5;
+  padding: 3px;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 2px;
 }
 
 .grafica-period-btn {
   border: none;
-  min-height: 40px;
-  padding: 8px 16px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
-  background-color: #E2E8F0;
-  color: var(--color-text-on-light);
-  transition: all 0.2s;
+  background-color: transparent;
+  color: var(--color-text-muted);
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .grafica-period-btn.active {
-  background-color: var(--nav-activo, #151D33);
-  color: #FFFFFF;
+  background-color: #FFFFFF;
+  color: var(--color-text-on-light);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-/* Tarjetas Inferiores OHLC en 5 columnas */
+html[data-theme='dark'] .grafica-type-toggle,
+html[data-theme='dark'] .grafica-period-group {
+  background-color: #1A2238;
+}
+
+html[data-theme='dark'] .grafica-toggle-btn.active,
+html[data-theme='dark'] .grafica-period-btn.active {
+  background-color: #264E7A;
+  color: #FFFFFF;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   Tira OHLC Continua y Compacta (Data Ribbon)
+   ========================================================================== */
 .grafica-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-  margin-top: 28px;
+  min-height: 38px;
+  padding: 8px 14px;
+  background: #F8F9FA;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+
+html[data-theme='dark'] .grafica-cards-grid {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .grafica-stat-card {
-  background-color: var(--superficie, #FFFFFF);
-  border: 1.5px solid var(--color-border);
-  padding: 18px 20px;
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .grafica-stat-label {
-  font-size: 13px;
+  font-size: 0.70rem;
   color: var(--color-text-muted);
-  margin-bottom: 6px;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
 }
 
 .grafica-stat-val-row {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .grafica-stat-value {
-  font-size: 20px;
+  font-size: 13.5px;
   color: var(--color-text-on-light);
   font-weight: 700;
 }
 
 .grafica-stat-change-tag {
   color: var(--color-bullish);
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 
@@ -255,31 +321,46 @@
   color: var(--color-text-muted);
 }
 
-.grafica-footer-note {
-  margin-top: 24px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  text-align: left;
-}
-
-/* Responsive (360px, 768px, 1280px) */
-@media (max-width: 1024px) {
-  .grafica-cards-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
-}
-
+/* ==========================================================================
+   Responsive (360px, 768px, 1100px)
+   ========================================================================== */
 @media (max-width: 768px) {
-  .grafica-card-container { padding: 18px 16px; border-radius: 16px; }
-  .grafica-title { font-size: 24px; }
-  .grafica-main-value { font-size: 28px; }
-  .grafica-header-right-group { width: 100%; justify-content: space-between; }
-  .grafica-entidad-selector-wrapper { width: 100%; }
-  .grafica-cards-grid { grid-template-columns: 1fr; gap: 12px; }
-  /* para que los botones de periodo no se salgan en 360px */
-  .grafica-period-group { flex-wrap: wrap; width: 100%; }
-  .grafica-period-btn { flex: 1 1 auto; text-align: center; padding: 8px 10px; }
-  .grafica-select-entidad { min-width: 0; width: 100%; }
+  .grafica-card-container {
+    padding: 14px 12px;
+    border-radius: 8px;
+  }
+  .grafica-header-top {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .grafica-header-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .grafica-header-right-group {
+    width: 100%;
+  }
+  .grafica-select-entidad {
+    width: 100%;
+    min-width: 0;
+  }
+  .grafica-period-group {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .grafica-period-btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+  .grafica-cards-grid {
+    justify-content: flex-start;
+    gap: 8px 14px;
+    padding: 8px 10px;
+  }
 }
 
 /* Oculta el enlace y la marca de agua de TradingView */

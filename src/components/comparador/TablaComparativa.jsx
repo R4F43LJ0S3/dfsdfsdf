@@ -1,4 +1,6 @@
 import { useMemo } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { puedeVerPosicionRanking } from '../../constants/permisos'
 import Variacion from '../common/Variacion'
 import MuestraLinea from './MuestraLinea'
 import { COLUMNAS_METRICAS } from '../../constants/comparador'
@@ -6,8 +8,7 @@ import { aNumeroONulo, mejoresDeColumna } from '../../utils/comparador'
 import { num } from '../../utils/format'
 
 // HU-FE-05 · CA 2: cada métrica es una columna y cada entidad una fila.
-// La estrella (★) marca el mejor valor de cada métrica entre las entidades comparadas;
-// el texto oculto "(mejor valor)" lo anuncia también en lectores de pantalla.
+// HU-FE-07 Matriz de permisos: Posición es dato confidencial (SA para Gerente / Directivo)
 
 function Valor({ columna, valor }) {
   const n = aNumeroONulo(valor)
@@ -25,9 +26,21 @@ function Valor({ columna, valor }) {
 }
 
 export default function TablaComparativa({ filas, periodo, cargando }) {
+  const { usuario } = useAuth()
+  const puedeVerPosicion = puedeVerPosicionRanking(usuario)
+
+  const columnasVisibles = useMemo(() => {
+    return COLUMNAS_METRICAS.filter((c) => {
+      if (c.tipo === 'posicion') {
+        return puedeVerPosicion && !filas.every((f) => f.valores?.posicion === null || f.valores?.posicion === undefined)
+      }
+      return true
+    })
+  }, [puedeVerPosicion, filas])
+
   const mejores = useMemo(
-    () => Object.fromEntries(COLUMNAS_METRICAS.map((c) => [c.clave, mejoresDeColumna(filas, c.clave, c.mejor)])),
-    [filas],
+    () => Object.fromEntries(columnasVisibles.map((c) => [c.clave, mejoresDeColumna(filas, c.clave, c.mejor)])),
+    [columnasVisibles, filas],
   )
 
   return (
@@ -40,7 +53,7 @@ export default function TablaComparativa({ filas, periodo, cargando }) {
         <thead>
           <tr>
             <th scope="col" className="cmp-col-entidad">Entidad</th>
-            {COLUMNAS_METRICAS.map((c) => (
+            {columnasVisibles.map((c) => (
               <th key={c.clave} scope="col" title={c.detalle}>{c.titulo}</th>
             ))}
           </tr>
@@ -57,8 +70,8 @@ export default function TablaComparativa({ filas, periodo, cargando }) {
                   </span>
                 </span>
               </th>
-              {COLUMNAS_METRICAS.map((c) => {
-                const esMejor = mejores[c.clave].has(f.codigo)
+              {columnasVisibles.map((c) => {
+                const esMejor = mejores[c.clave]?.has(f.codigo)
                 return (
                   <td key={c.clave} className={esMejor ? 'cmp-mejor' : undefined}>
                     <span className="cmp-celda">

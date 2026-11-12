@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Save, RotateCcw } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import { puedeGestionarParametros } from '../../constants/permisos'
 import { obtenerPesos, guardarPesos, RUTAS_ESPERADAS } from '../../services/adminService'
 import RutaPendiente from './RutaPendiente'
 import { extraerMensajeError } from '../../services/authService'
 import { PESOS, validarPeso, validarPesos, sumarPesos } from '../../constants/validaciones'
 
 // HU-FE-07 CA 3: el formulario de pesos valida estrictamente que sumen exactamente 100 %
+// Decisión D3: Auditor tiene acceso de solo lectura (L) a parámetros; Administrador y Analista tienen (L + E)
 
 const formatoPct = (n) => `${n.toLocaleString('es-CO', { maximumFractionDigits: 1 })} %`
 
@@ -13,10 +16,14 @@ const formatoPct = (n) => `${n.toLocaleString('es-CO', { maximumFractionDigits: 
 const firma = (lista) => JSON.stringify(lista.map((p) => Number(String(p.peso).replace(',', '.'))))
 
 export default function PesosAdmin() {
+  const { usuario } = useAuth()
+  const soloLectura = !puedeGestionarParametros(usuario)
+
   const [original, setOriginal] = useState(null)
   const [pesos, setPesos] = useState(null)
+  const [motivo, setMotivo] = useState('Actualización de ponderaciones del IC')
   const [errorCarga, setErrorCarga] = useState('')
-  const [pendiente, setPendiente] = useState(false) // el backend aun no publica la ruta de pesos
+  const [pendiente, setPendiente] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [aviso, setAviso] = useState(null)
 
@@ -27,8 +34,13 @@ export default function PesosAdmin() {
         setPesos(datos.map((p) => ({ ...p, peso: String(p.peso) })))
       })
       .catch((err) => {
-        if (err?.pendiente) setPendiente(true)
-        else setErrorCarga(extraerMensajeError(err, 'No se pudieron cargar los pesos.'))
+        if (err?.pendiente) {
+          setPendiente(true)
+        } else if (err?.response?.status === 403) {
+          setErrorCarga('Tu perfil actual no cuenta con autorización en el servidor para consultar esta configuración.')
+        } else {
+          setErrorCarga(extraerMensajeError(err, 'No se pudieron cargar los pesos del IC.'))
+        }
       })
   }, [])
 
@@ -41,26 +53,27 @@ export default function PesosAdmin() {
   const total = useMemo(() => (pesos ? sumarPesos(pesos) : 0), [pesos])
   const revision = useMemo(() => (pesos ? validarPesos(pesos) : { valido: false }), [pesos])
   const huboCambios = pesos && original && firma(pesos) !== firma(original)
-  const puedeGuardar = revision.valido && huboCambios && !guardando
+  const puedeGuardar = !soloLectura && revision.valido && huboCambios && Boolean(motivo.trim()) && !guardando
 
   const diferencia = Math.round((PESOS.TOTAL - total) * 10) / 10
   const estadoSuma = diferencia === 0 ? 'ok' : diferencia > 0 ? 'falta' : 'sobra'
 
   const cambiar = (indice) => (e) => {
-    // Solo se dejan escribir números, punto o coma (máximo 5 caracteres: 100.0)
+    if (soloLectura) return
     const valor = e.target.value.replace(/[^\d.,]/g, '').slice(0, 5)
     setPesos((lista) => lista.map((p, i) => (i === indice ? { ...p, peso: valor } : p)))
     if (aviso) setAviso(null)
   }
 
   const restaurar = () => {
+    if (!original) return
     setPesos(original.map((p) => ({ ...p, peso: String(p.peso) })))
     setAviso(null)
   }
 
   const guardar = async (e) => {
     e.preventDefault()
-    // Doble revisión: aunque el botón esté bloqueado, no se envía nada si no suman exactamente 100 %
+    if (soloLectura) return
     if (!revision.valido) {
       setAviso({ tipo: 'error', texto: revision.error })
       return
@@ -68,11 +81,11 @@ export default function PesosAdmin() {
     if (!huboCambios) return
     setGuardando(true)
     try {
-      const guardados = await guardarPesos(pesos)
+      const guardados = await guardarPesos(pesos, motivo)
       const nuevos = Array.isArray(guardados) && guardados.length ? guardados : pesos
       setOriginal(nuevos.map((p) => ({ ...p, peso: Number(String(p.peso).replace(',', '.')) })))
       setPesos(nuevos.map((p) => ({ ...p, peso: String(p.peso) })))
-      setAviso({ tipo: 'ok', texto: 'Pesos guardados. Se aplican en el próximo cálculo del índice.' })
+      setAviso({ tipo: 'ok', texto: 'Nueva versión de pesos registrada. Aplica en el próximo cálculo del índice.' })
     } catch (err) {
       setAviso({ tipo: 'error', texto: extraerMensajeError(err, 'No se pudieron guardar los pesos.') })
     } finally {
@@ -86,7 +99,7 @@ export default function PesosAdmin() {
         <h2 id="adm-pesos-titulo" className="adm-subtitulo">Pesos del índice de competitividad</h2>
         <div className="adm-tarjeta">
           <RutaPendiente
-            texto="Los pesos se leen y se guardan en la base de datos (analitica.dim_dimension.peso_ic). Para eso el backend debe publicar:"
+            texto="Los pesos se leen y se guardan en el servidor mediante las rutas:"
             rutas={[RUTAS_ESPERADAS.pesosDimensiones]}
           />
         </div>
@@ -99,12 +112,8 @@ export default function PesosAdmin() {
   return (
     <section aria-labelledby="adm-pesos-titulo" className="adm-seccion">
       <div className="adm-seccion-cabecera">
-        <div>
-          <h2 id="adm-pesos-titulo">Pesos del índice de competitividad</h2>
-          <p className="adm-texto-suave">
-            Define cuánto aporta cada dimensión al índice (0 a 100). Los pesos deben sumar exactamente 100 %.
-          </p>
-        </div>
+        <h2 id="adm-pesos-titulo">Pesos del índice de competitividad</h2>
+        {soloLectura && <span className="adm-rol">Modo lectura</span>}
       </div>
 
       <form className="adm-tarjeta adm-pesos" onSubmit={guardar} noValidate>
@@ -127,7 +136,7 @@ export default function PesosAdmin() {
                     onChange={cambiar(i)}
                     aria-invalid={!val.valido}
                     aria-describedby={val.valido ? undefined : `${id}-error`}
-                    disabled={guardando}
+                    disabled={guardando || soloLectura}
                   />
                   <span aria-hidden="true">%</span>
                 </div>
@@ -140,17 +149,32 @@ export default function PesosAdmin() {
         <div className={`adm-suma adm-suma-${estadoSuma}`} role="status" aria-live="polite">
           <div className="adm-suma-texto">
             <span>Total</span>
-            <strong>{formatoPct(total)}</strong>
+            <strong className="mono-num">{formatoPct(total)}</strong>
           </div>
           <div className="adm-suma-barra" aria-hidden="true">
             <span style={{ width: `${Math.min(total, 100)}%` }} />
           </div>
           <p>
-            {estadoSuma === 'ok' && 'La suma es correcta (exactamente 100 %).'}
-            {estadoSuma === 'falta' && `Faltan ${formatoPct(diferencia)} para llegar a 100 %.`}
-            {estadoSuma === 'sobra' && `Sobran ${formatoPct(-diferencia)}: baja algún peso.`}
+            {estadoSuma === 'ok' && 'Suma exacta (100,0 %).'}
+            {estadoSuma === 'falta' && `Faltan ${formatoPct(diferencia)} para completar 100,0 %.`}
+            {estadoSuma === 'sobra' && `Exceso de ${formatoPct(-diferencia)} sobre 100,0 %.`}
           </p>
         </div>
+
+        {!soloLectura && huboCambios && (
+          <div className="adm-campo" style={{ marginBottom: 0 }}>
+            <label htmlFor="adm-pesos-motivo">Motivo de la versión</label>
+            <input
+              id="adm-pesos-motivo"
+              type="text"
+              maxLength={500}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              disabled={guardando}
+              required
+            />
+          </div>
+        )}
 
         {aviso && (
           <p className={`adm-alerta ${aviso.tipo === 'ok' ? 'adm-alerta-ok' : 'adm-alerta-error'}`} role="alert">
@@ -158,20 +182,22 @@ export default function PesosAdmin() {
           </p>
         )}
 
-        <div className="adm-pesos-acciones">
-          <button type="button" className="adm-btn adm-btn-secundario" onClick={restaurar} disabled={!huboCambios || guardando}>
-            <RotateCcw size={17} aria-hidden="true" /> Deshacer cambios
-          </button>
-          <button
-            type="submit"
-            className="adm-btn adm-btn-principal"
-            disabled={!puedeGuardar}
-            aria-disabled={!puedeGuardar}
-            title={!revision.valido ? 'Los pesos deben sumar exactamente 100 % para guardar' : undefined}
-          >
-            <Save size={17} aria-hidden="true" /> {guardando ? 'Guardando…' : 'Guardar pesos'}
-          </button>
-        </div>
+        {!soloLectura && (
+          <div className="adm-pesos-acciones">
+            <button type="button" className="adm-btn adm-btn-secundario" onClick={restaurar} disabled={!huboCambios || guardando}>
+              <RotateCcw size={16} aria-hidden="true" /> Restaurar
+            </button>
+            <button
+              type="submit"
+              className="adm-btn adm-btn-principal"
+              disabled={!puedeGuardar}
+              aria-disabled={!puedeGuardar}
+              title={!revision.valido ? 'Los pesos deben sumar exactamente 100 % para guardar' : undefined}
+            >
+              <Save size={16} aria-hidden="true" /> {guardando ? 'Guardando…' : 'Guardar versión'}
+            </button>
+          </div>
+        )}
       </form>
     </section>
   )

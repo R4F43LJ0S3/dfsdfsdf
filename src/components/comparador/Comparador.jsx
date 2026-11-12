@@ -124,10 +124,6 @@ export default function Comparador() {
     <div className="cmp">
       <header>
         <h1 className="cmp-titulo">Comparar entidades</h1>
-        <p className="cmp-subtitulo">
-          Elige de {MIN_ENTIDADES} a {MAX_ENTIDADES} entidades para ver sus métricas lado a lado y la evolución
-          de su Índice de Competitividad (IC) en una misma gráfica.
-        </p>
       </header>
 
       <section className="cmp-tarjeta" aria-labelledby="cmp-titulo-seleccion">
@@ -243,10 +239,6 @@ export default function Comparador() {
                   Limpiar selección
                 </button>
               </div>
-              <p className="cmp-nota">
-                Tu selección queda guardada en la dirección de la página y en este navegador:
-                si recargas o compartes el enlace, se conserva.
-              </p>
             </div>
           </div>
         )}
@@ -270,12 +262,7 @@ export default function Comparador() {
               <h2 id="cmp-titulo-metricas" className="cmp-tarjeta-titulo">Métricas lado a lado</h2>
               <span className="cmp-etiqueta-periodo">Periodo: {textoPeriodo}</span>
             </div>
-            <p className="cmp-pista-movil" aria-hidden="true">Desliza la tabla hacia los lados para ver las 7 métricas →</p>
             <TablaComparativa filas={filas} periodo={textoPeriodo} cargando={cargandoRanking} />
-            <p className="cmp-nota">
-              <span aria-hidden="true">★</span> Mejor valor de cada métrica entre las entidades elegidas
-              (en Posición, el número más bajo). Pasa el cursor por el título de una columna para ver qué mide.
-            </p>
             {sinDimensiones && (
               <p className="cmp-nota" role="status">
                 El servidor aún no publica puntajes por dimensión para el periodo {textoPeriodo}; por eso esas

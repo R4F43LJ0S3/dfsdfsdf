@@ -1,19 +1,21 @@
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { num } from '../../utils/format'
 import Variacion from '../common/Variacion'
 
-const COLUMNAS = [
-  { campo: 'posicion', titulo: 'Pos.' },
-  { campo: null, titulo: 'Cambio' },
-  { campo: 'entidad', titulo: 'Entidad' },
-  { campo: 'sector', titulo: 'Sector' },
-  { campo: 'ic', titulo: 'IC' },
-  { campo: 'variacionPct', titulo: 'Variación' },
+const TODAS_COLUMNAS = [
+  { campo: 'posicion', titulo: 'Pos.', confidencial: true },
+  { campo: null, titulo: 'Cambio', confidencial: true },
+  { campo: 'entidad', titulo: 'Entidad', confidencial: false },
+  { campo: 'sector', titulo: 'Sector', confidencial: false },
+  { campo: 'ic', titulo: 'IC', confidencial: false },
+  { campo: 'variacionPct', titulo: 'Variación', confidencial: false },
 ]
 
-// cuantos puestos subio o bajo
+// Cuántos puestos subió o bajó
 function CambioPosicion({ valor }) {
-  if (!valor) return <span className="cambio cambio-igual" title="Sin cambio de posición">=</span>
+  if (valor === null || valor === undefined) return <span className="cambio cambio-igual" title="Sin dato">—</span>
+  if (valor === 0) return <span className="cambio cambio-igual" title="Sin cambio de posición">=</span>
   const sube = valor > 0
   const texto = `${sube ? 'Subió' : 'Bajó'} ${Math.abs(valor)} ${Math.abs(valor) === 1 ? 'puesto' : 'puestos'}`
   return (
@@ -24,7 +26,26 @@ function CambioPosicion({ valor }) {
   )
 }
 
-export default function RankingTabla({ filas, total, orden, dir, dimension, periodo, periodoId, cargando, onOrdenar }) {
+export default function RankingTabla({
+  filas,
+  total,
+  orden,
+  dir,
+  dimension,
+  periodo,
+  periodoId,
+  cargando,
+  onOrdenar,
+  mostrarPosicion = true,
+}) {
+  // HU-FE-07 Decisión D1: El Gerente / Directivo ve el ranking pero SIN posición ni cambio de posición (confidencial)
+  const puedeVerPosicion = mostrarPosicion && !filas.every((f) => f.posicion === null || f.posicion === undefined)
+
+  const columnas = useMemo(
+    () => TODAS_COLUMNAS.filter((c) => !c.confidencial || puedeVerPosicion),
+    [puedeVerPosicion],
+  )
+
   if (filas.length === 0) {
     return <p className="estado tarjeta">No hay entidades con esos filtros.</p>
   }
@@ -33,7 +54,6 @@ export default function RankingTabla({ filas, total, orden, dir, dimension, peri
 
   return (
     <section className={`tarjeta tabla-tarjeta ${cargando ? 'actualizando' : ''}`} aria-busy={cargando}>
-      {/* La tabla se desplaza dentro de su contenedor, sin desbordar la página. */}
       <div className="tabla-contenedor">
         <table className="tabla">
           <caption className="solo-lector">
@@ -41,7 +61,7 @@ export default function RankingTabla({ filas, total, orden, dir, dimension, peri
           </caption>
           <thead>
             <tr>
-              {COLUMNAS.map((c) => {
+              {columnas.map((c) => {
                 if (!c.campo) {
                   return <th key={c.titulo} scope="col"><span className="th-texto">{c.titulo}</span></th>
                 }
@@ -68,8 +88,12 @@ export default function RankingTabla({ filas, total, orden, dir, dimension, peri
           <tbody>
             {filas.map((f) => (
               <tr key={f.entidadId}>
-                <td className="mono-num posicion">{f.posicion}</td>
-                <td><CambioPosicion valor={f.cambioPosicion} /></td>
+                {puedeVerPosicion && (
+                  <>
+                    <td className="mono-num posicion">{f.posicion ?? '—'}</td>
+                    <td><CambioPosicion valor={f.cambioPosicion} /></td>
+                  </>
+                )}
                 <td>
                   <Link to={`/grafica?entidad=${f.entidadId}${periodoId ? `&periodo=${periodoId}` : ''}`} className="entidad">
                     <strong>{f.entidad}</strong>
@@ -90,8 +114,8 @@ export default function RankingTabla({ filas, total, orden, dir, dimension, peri
           </tbody>
         </table>
       </div>
-      <p className="texto-suave pie">
-        Mostrando {filas.length} de {total} entidades · Periodo {periodo.toLowerCase()} · Clic en una entidad para ver su gráfica
+      <p className="texto-suave pie mono-num">
+        {filas.length} de {total} entidades · {periodo}
       </p>
     </section>
   )

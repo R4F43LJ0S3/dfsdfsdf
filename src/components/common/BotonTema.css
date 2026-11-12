@@ -1,4 +1,38 @@
-.boton-tema { width: 44px; height: 44px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--superficie); color: var(--color-text-on-light); display: inline-grid; place-items: center; }
-.boton-tema:hover { background: var(--color-azul-acero-light); }
-.boton-tema:focus-visible { outline: 3px solid var(--color-verde-alza); outline-offset: 2px; }
-.tema-flotante { position: fixed; top: 16px; right: 16px; z-index: 10; }
+.boton-tema {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--superficie);
+  color: var(--color-text-on-light);
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+html[data-theme='dark'] .boton-tema {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.boton-tema svg {
+  width: 16px;
+  height: 16px;
+}
+
+.boton-tema:hover {
+  background: var(--color-azul-acero-light);
+}
+
+.boton-tema:focus-visible {
+  outline: 2px solid var(--color-azul-acero);
+  outline-offset: 1px;
+}
+
+.tema-flotante {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}

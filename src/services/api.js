@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { ENDPOINTS } from './endpoints'
 import { PERIODOS, PERIODO_POR_DEFECTO, DIMENSIONES_RANKING } from '../constants/periodos'
-import { aEntidades, aSesion, aSerieOhlc } from './adaptadores'
+import { aEntidad, aEntidades, aSesion, aSerieOhlc } from './adaptadores'
 import { esTokenVigente } from '../utils/jwt'
 import { normalizarIdentificador, normalizarPassword } from '../utils/texto'
 
@@ -80,11 +80,21 @@ async function conReintentoDeArranque(peticion, intentos = 2) {
   throw ultimoError
 }
 
+// Normaliza el parámetro periodo ('Diaria' | 'Mensual' | 'Trimestral') exigido por GET /api/v1/entidades/{id}/ohlc
+function normalizarPeriodoOhlc(periodo) {
+  const p = String(periodo ?? 'Mensual').trim().toLowerCase()
+  if (p === 'diario' || p === 'diaria') return 'Diaria'
+  if (p === 'trimestral') return 'Trimestral'
+  return 'Mensual'
+}
+
 // Normaliza el parámetro periodo ('diario' | 'mensual' | 'trimestral') para /ranking y /metricas
 function normalizarPeriodoMinusculas(periodo) {
   if (!periodo) return undefined
   const p = String(periodo).trim().toLowerCase()
-  if (p === 'diaria') return 'diario'
+  if (p === 'diaria' || p === 'diario') return 'diario'
+  if (p === 'mensual') return 'mensual'
+  if (p === 'trimestral') return 'trimestral'
   return p
 }
 
@@ -139,12 +149,12 @@ export async function getEntidades(filtros = {}) {
 }
 
 // GET /api/v1/entidades/{id}
-// Devuelve EntidadDetalleDto (id: uuid, codigo, nombre, sector, nit, estado, icActual, variacion, variacionPct, ultimaActualizacion)
+// Devuelve EntidadDto (id: uuid, codigo, nombre, sector, ic, variacion, variacionPct)
 export async function getEntidad(id) {
   const res = await conReintentoDeArranque(() =>
     http.get(ENDPOINTS.entidad(id)),
   )
-  return res.data
+  return aEntidad(res.data)
 }
 
 // Calcula el resumen agregado del Índice General a partir de los registros reales de GET /api/v1/entidades
@@ -173,9 +183,10 @@ export async function getTop() {
 
 // GET /api/v1/entidades/{id}/ohlc
 // Parámetros en docs/api/openapi-v1.json: id (uuid en ruta), periodo ('Diaria' | 'Mensual' | 'Trimestral')
-export async function getOhlc(id, periodo = PERIODO_POR_DEFECTO) {
+export async function getOhlc(idEntidad, periodo = PERIODO_POR_DEFECTO) {
+  const periodoOhlc = normalizarPeriodoOhlc(periodo)
   const res = await conReintentoDeArranque(() =>
-    http.get(ENDPOINTS.ohlc(id), { params: { periodo } }),
+    http.get(ENDPOINTS.ohlc(idEntidad), { params: { periodo: periodoOhlc } }),
   )
   return aSerieOhlc(res.data)
 }
@@ -235,15 +246,55 @@ export async function getSectores() {
   return catalogoDerivado('sectores', async () => (await getEntidades({ size: 100 })).map((e) => e.sector))
 }
 
-// Dimensiones: valores únicos de GET /api/v1/metricas (size máx 100 según OpenAPI) o las 4 dimensiones del contrato de /ranking
+// Dimensiones: /api/v1/ranking admite exclusivamente las 4 dimensiones oficiales de DIMENSIONES_RANKING
 export async function getDimensiones() {
-  const derivadas = await catalogoDerivado('dimensiones', async () =>
-    (await getMetricas({ size: 100 })).map((m) => m.dimension),
-  )
-  return derivadas.length > 0 ? derivadas : DIMENSIONES_RANKING
+  return Promise.resolve(DIMENSIONES_RANKING)
 }
 
-// Periodos: opciones documentadas en docs/api/openapi-v1.json ('Diaria', 'Mensual', 'Trimestral')
+// Periodos: opciones documentadas en docs/api/openapi-v1.json
 export async function getPeriodos() {
   return PERIODOS
+}
+
+// GET /api/v1/watchlist
+export async function getWatchlist() {
+  const res = await conReintentoDeArranque(() => http.get(ENDPOINTS.watchlist))
+  return Array.isArray(res.data) ? res.data : res.data?.items ?? []
+}
+
+// POST /api/v1/watchlist/{idEntidad}
+export async function agregarAWatchlist(idEntidad) {
+  const res = await conReintentoDeArranque(() => http.post(ENDPOINTS.watchlistEntidad(idEntidad)))
+  return res.data
+}
+
+// DELETE /api/v1/watchlist/{idEntidad}
+export async function quitarDeWatchlist(idEntidad) {
+  const res = await conReintentoDeArranque(() => http.delete(ENDPOINTS.watchlistEntidad(idEntidad)))
+  return res.data
+}
+
+// --- Aprobaciones de Lotes (HU-FE-08 / HU-BE-08) ---
+
+// GET /api/v1/aprobaciones
+// Roles admitidos: Administrador, Data Steward, Analista financiero, Auditor
+export async function getLotesPendientes() {
+  const res = await conReintentoDeArranque(() => http.get(ENDPOINTS.aprobaciones))
+  return Array.isArray(res.data) ? res.data : []
+}
+
+// POST /api/v1/aprobaciones/{idLote}/aprobar
+// Rol admitido: Analista financiero (segregación de funciones: no puede aprobar su propio lote)
+export async function aprobarLote(idLote) {
+  const res = await conReintentoDeArranque(() => http.post(ENDPOINTS.aprobarLote(idLote)))
+  return res.data
+}
+
+// POST /api/v1/aprobaciones/{idLote}/rechazar
+// Rol admitido: Analista financiero. Cuerpo: { comentario: string } (obligatorio, máx 500 caracteres)
+export async function rechazarLote(idLote, comentario) {
+  const res = await conReintentoDeArranque(() =>
+    http.post(ENDPOINTS.rechazarLote(idLote), { comentario: String(comentario ?? '').trim() }),
+  )
+  return res.data
 }

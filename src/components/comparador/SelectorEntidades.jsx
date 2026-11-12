@@ -1,7 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import { num } from '../../utils/format'
 import { sinTildes } from '../../utils/comparador'
-import { MIN_ENTIDADES, MAX_ENTIDADES } from '../../constants/comparador'
+import { MAX_ENTIDADES } from '../../constants/comparador'
 
 // HU-FE-05 · Lista de entidades con buscador.
 // CA 1: al llegar a 4, las demás opciones se ven bloqueadas pero siguen respondiendo
@@ -9,7 +9,6 @@ import { MIN_ENTIDADES, MAX_ENTIDADES } from '../../constants/comparador'
 export default function SelectorEntidades({ entidades, seleccion, lleno, onAlternar }) {
   const [busqueda, setBusqueda] = useState('')
   const idBusqueda = useId()
-  const idAyuda = useId()
 
   const filtradas = useMemo(() => {
     const texto = sinTildes(busqueda.trim())
@@ -35,11 +34,7 @@ export default function SelectorEntidades({ entidades, seleccion, lleno, onAlter
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
         autoComplete="off"
-        aria-describedby={idAyuda}
       />
-      <p id={idAyuda} className="cmp-ayuda">
-        Elige entre {MIN_ENTIDADES} y {MAX_ENTIDADES} entidades. Haz clic de nuevo sobre una elegida para quitarla.
-      </p>
 
       {filtradas.length === 0 ? (
         <p className="cmp-lista-vacia" role="status">Ninguna entidad coincide con “{busqueda}”.</p>

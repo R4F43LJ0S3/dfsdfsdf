@@ -1,0 +1,465 @@
+/* HU-FE-08: Bandeja de Aprobación por Lotes — Clean Financial Design (ALZA) */
+
+.bandeja-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bandeja-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bandeja-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.bandeja-header h1 {
+  margin: 0;
+  font-size: clamp(1.30rem, 1.8vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-on-light);
+}
+
+.bandeja-contador {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(58, 108, 168, 0.10);
+  color: var(--color-azul-acero);
+  border: 1px solid rgba(58, 108, 168, 0.22);
+}
+
+.bandeja-modo-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-muted);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.bandeja-btn-refrescar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--superficie, #ffffff);
+  color: var(--color-text-on-light);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.bandeja-btn-refrescar:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.bandeja-btn-refrescar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Alertas institucionales en línea */
+.bandeja-alerta {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.bandeja-alerta-ok {
+  background: var(--color-bullish-bg);
+  border-color: var(--color-bullish-border);
+  color: var(--color-bullish);
+}
+
+.bandeja-alerta-error {
+  background: var(--color-bearish-bg);
+  border-color: var(--color-bearish-border);
+  color: var(--color-bearish);
+}
+
+/* Superficie de tarjeta / tabla */
+.bandeja-card {
+  background: var(--superficie, #ffffff);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.bandeja-vacia {
+  padding: 28px 20px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.bandeja-estado-error {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--color-bearish);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.bandeja-tabla-wrap {
+  overflow-x: auto;
+}
+
+.bandeja-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.bandeja-tabla thead th {
+  padding: 10px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background: rgba(0, 0, 0, 0.015);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+
+.bandeja-tabla tbody td {
+  padding: 10px 14px;
+  min-height: 40px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  color: var(--color-text-on-light);
+  vertical-align: middle;
+}
+
+.bandeja-tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.bandeja-tabla tbody tr:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.bandeja-tabla th.num,
+.bandeja-tabla td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bandeja-tabla th.acciones-col,
+.bandeja-tabla td.acciones-col {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bandeja-id-col {
+  color: var(--color-text-muted);
+  font-size: 0.80rem;
+}
+
+.bandeja-archivo-col {
+  font-weight: 600;
+}
+
+/* Badges de estado */
+.bandeja-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+.bandeja-badge-exito {
+  background: var(--color-bullish-bg);
+  color: var(--color-bullish);
+  border-color: var(--color-bullish-border);
+}
+
+.bandeja-badge-fallo {
+  background: var(--color-bearish-bg);
+  color: var(--color-bearish);
+  border-color: var(--color-bearish-border);
+}
+
+.bandeja-badge-pendiente {
+  background: var(--color-warning-bg);
+  color: #9A6A06;
+  border-color: var(--color-warning-border);
+}
+
+.bandeja-sin-accion {
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* Botones de acción en fila */
+.bandeja-acciones-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bandeja-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.bandeja-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bandeja-btn-aprobar {
+  background: var(--color-bullish-bg);
+  color: var(--color-bullish);
+  border-color: var(--color-bullish-border);
+}
+
+.bandeja-btn-aprobar:hover:not(:disabled) {
+  background: #27AE60;
+  color: #ffffff;
+  border-color: #27AE60;
+}
+
+.bandeja-btn-rechazar {
+  background: var(--color-bearish-bg);
+  color: var(--color-bearish);
+  border-color: var(--color-bearish-border);
+}
+
+.bandeja-btn-rechazar:hover:not(:disabled) {
+  background: #EB5757;
+  color: #ffffff;
+  border-color: #EB5757;
+}
+
+.bandeja-btn-secundario {
+  height: 36px;
+  background: transparent;
+  color: var(--color-text-on-light);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.bandeja-btn-secundario:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.bandeja-btn-rechazar-confirmar {
+  height: 36px;
+  background: var(--color-bearish);
+  color: #ffffff;
+  border-color: var(--color-bearish);
+}
+
+.bandeja-btn-rechazar-confirmar:hover:not(:disabled) {
+  background: #C53030;
+}
+
+/* Modal de rechazo */
+.bandeja-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1100;
+}
+
+.bandeja-modal {
+  width: min(460px, 100%);
+  background: var(--superficie, #ffffff);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bandeja-modal-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bandeja-modal-sub {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.bandeja-modal-cabecera h2 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--color-text-on-light);
+}
+
+.bandeja-modal-cerrar {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  color: var(--color-text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.bandeja-modal-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bandeja-modal-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.80rem;
+  font-weight: 600;
+  color: var(--color-text-on-light);
+}
+
+.bandeja-char-count {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.bandeja-modal-campo textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: var(--superficie, #ffffff);
+  color: var(--color-text-on-light);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+  outline: none;
+}
+
+.bandeja-modal-campo textarea:focus {
+  border-color: var(--color-azul-acero);
+}
+
+.bandeja-error-texto {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-bearish);
+}
+
+.bandeja-modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Soporte Modo Oscuro */
+html[data-theme='dark'] .bandeja-card,
+html[data-theme='dark'] .bandeja-btn-refrescar {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .bandeja-modo-tag {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .bandeja-tabla thead th {
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .bandeja-tabla tbody td {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='dark'] .bandeja-tabla tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+html[data-theme='dark'] .bandeja-badge-pendiente {
+  background: rgba(242, 201, 76, 0.14);
+  color: #F4CF7A;
+  border-color: rgba(242, 201, 76, 0.30);
+}
+
+html[data-theme='dark'] .bandeja-modal {
+  background: #151D33;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme='dark'] .bandeja-modal-campo textarea {
+  background: #0E1424;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+html[data-theme='dark'] .bandeja-btn-secundario,
+html[data-theme='dark'] .bandeja-modal-cerrar {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 640px) {
+  .bandeja-tabla thead th,
+  .bandeja-tabla tbody td {
+    padding: 8px 10px;
+  }
+}

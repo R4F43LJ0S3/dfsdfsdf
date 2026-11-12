@@ -2,7 +2,7 @@
   background: var(--color-azul-noche);
   color: var(--color-text-on-dark);
   overflow: hidden;
-  height: 44px;
+  height: 34px;
   display: flex;
   align-items: center;
   width: 100%;
@@ -10,9 +10,9 @@
 
 .ticker-pista {
   display: flex;
-  gap: 40px;
+  gap: 36px;
   width: max-content;
-  padding-right: 40px;
+  padding-right: 36px;
   will-change: transform;
   animation: ticker-mover 40s linear infinite;
 }
@@ -23,9 +23,9 @@
 
 .ticker-item {
   display: inline-flex;
-  gap: 10px;
+  gap: 8px;
   align-items: baseline;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   white-space: nowrap;
 }
 
@@ -47,5 +47,21 @@
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 768px) {
+  .ticker {
+    height: 28px;
+  }
+
+  .ticker-pista {
+    gap: 20px;
+    padding-right: 20px;
+  }
+
+  .ticker-item {
+    font-size: 0.76rem;
+    gap: 6px;
   }
 }

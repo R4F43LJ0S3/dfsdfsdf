@@ -19,7 +19,7 @@ export const RUTAS_ESPERADAS = Object.freeze({
   listarUsuarios: 'GET /api/v1/usuarios',
   editarUsuario: 'PUT /api/v1/usuarios/{id}',
   cambiarEstadoUsuario: 'PATCH /api/v1/usuarios/{id}/estado',
-  pesosDimensiones: 'GET y PUT /api/v1/parametros/pesos',
+  pesosDimensiones: 'GET /api/v1/ic/configuracion · POST /api/v1/ic/configuracion/versiones',
 })
 
 // Error cuando el backend aún no publica la ruta. La pantalla lo reconoce por la propiedad "pendiente"
@@ -81,19 +81,27 @@ export async function cambiarEstadoUsuario(id, estado) {
   return data
 }
 
-// ---------------------------------------------------------------- Pesos
+// ---------------------------------------------------------------- Pesos (Configuración del IC)
+
+let ultimaConfiguracionIc = null
 
 export async function obtenerPesos() {
-  if (!ENDPOINTS.pesosDimensiones) throw errorRutaPendiente('pesosDimensiones')
-  const { data } = await http.get(ENDPOINTS.pesosDimensiones)
-  return data.map((d) => ({
-    idDimension: d.idDimension,
-    dimension: d.nombre ?? d.dimension,
-    peso: Math.round(Number(d.pesoIc) * 1000) / 10,
-  }))
+  if (!ENDPOINTS.icConfiguracion) throw errorRutaPendiente('pesosDimensiones')
+  const { data } = await http.get(ENDPOINTS.icConfiguracion)
+  ultimaConfiguracionIc = data && typeof data === 'object' && !Array.isArray(data) ? data : null
+  const lista = Array.isArray(data?.pesos) ? data.pesos : Array.isArray(data) ? data : []
+  return lista.map((d, idx) => {
+    const bruto = Number(d.peso ?? d.pesoIc ?? 0)
+    const enPorcentaje = bruto <= 1 ? Math.round(bruto * 1000) / 10 : Math.round(bruto * 10) / 10
+    return {
+      idDimension: d.idDimension ?? idx + 1,
+      dimension: d.dimension ?? d.nombre ?? `Dimensión ${idx + 1}`,
+      peso: enPorcentaje,
+    }
+  })
 }
 
-export async function guardarPesos(pesos) {
+export async function guardarPesos(pesos, motivo = '') {
   const revision = validarPesos(pesos)
   if (!revision.valido) throw errorLocal(422, revision.error)
 
@@ -103,12 +111,22 @@ export async function guardarPesos(pesos) {
     peso: aCentesimas(p.peso) / 100,
   }))
 
-  if (!ENDPOINTS.pesosDimensiones) throw errorRutaPendiente('pesosDimensiones')
-  const cuerpo = limpios.map((p) => ({
-    idDimension: p.idDimension,
-    nombre: p.dimension,
-    pesoIc: aCentesimas(p.peso) / 10000,
-  }))
-  await http.put(ENDPOINTS.pesosDimensiones, cuerpo)
+  if (!ENDPOINTS.icVersiones) throw errorRutaPendiente('pesosDimensiones')
+
+  const motivoLimpio =
+    String(motivo ?? '').trim().slice(0, 500) ||
+    'Actualización de ponderaciones por dimensión del IC'
+
+  const cuerpo = {
+    motivo: motivoLimpio,
+    frecuencia: ultimaConfiguracionIc?.frecuenciaIc || 'Mensual',
+    pesos: limpios.map((p) => ({
+      dimension: p.dimension,
+      peso: Number((aCentesimas(p.peso) / 10000).toFixed(6)),
+    })),
+    umbrales: Array.isArray(ultimaConfiguracionIc?.umbrales) ? ultimaConfiguracionIc.umbrales : [],
+  }
+
+  await http.post(ENDPOINTS.icVersiones, cuerpo)
   return limpios
 }

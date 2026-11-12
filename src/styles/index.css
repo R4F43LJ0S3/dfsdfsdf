@@ -69,6 +69,7 @@ input, select, textarea {
 .mono-num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
 }
 
 /* Oculta la marca de agua y enlaces externos de TradingView en todas las gráficas */

@@ -11,7 +11,8 @@ import MuestraLinea from './MuestraLinea'
 // Las peticiones van en paralelo con Promise.allSettled: si una entidad no tiene serie,
 // las demás se dibujan igual y la leyenda explica cuál faltó.
 
-const ALTO = 360
+const ALTO_MOVIL = 260
+const ALTO_ESCRITORIO = 360
 
 const ESTILO_LINEA = {
   solida: LineStyle.Solid,
@@ -89,9 +90,10 @@ export default function GraficaComparativa({ entidades, periodo, nombrePeriodo }
     const oscuro = tema === 'dark'
     const C = oscuro ? COLORES.dark : COLORES.light
 
+    const altoResp = window.innerWidth < 640 ? ALTO_MOVIL : ALTO_ESCRITORIO
     const chart = createChart(contenedor, {
       width: contenedor.clientWidth || 600,
-      height: ALTO,
+      height: altoResp,
       layout: { background: { type: ColorType.Solid, color: C.fondo }, textColor: C.texto },
       grid: { vertLines: { color: C.rejilla }, horzLines: { color: C.rejilla } },
       rightPriceScale: { borderColor: C.borde },
@@ -130,7 +132,10 @@ export default function GraficaComparativa({ entidades, periodo, nombrePeriodo }
     })
 
     const observador = new ResizeObserver(() => {
-      if (contenedor.clientWidth > 0) chart.applyOptions({ width: contenedor.clientWidth })
+      if (contenedor.clientWidth > 0) {
+        const h = window.innerWidth < 640 ? ALTO_MOVIL : ALTO_ESCRITORIO
+        chart.applyOptions({ width: contenedor.clientWidth, height: h })
+      }
     })
     observador.observe(contenedor)
 

@@ -29,7 +29,6 @@ export default function Tablero() {
     <div className="tablero">
       <header>
         <h1 className="titulo-pagina">Tablero de mercado</h1>
-        <p className="texto-suave">Resumen del Índice de Competitividad de las entidades.</p>
       </header>
 
       <div className="fila-principal">
@@ -72,17 +71,10 @@ export default function Tablero() {
       </div>
 
       <div className="fila-listas">
-        <TopLista titulo="Top 5 ganadores del día" entidades={top.ganadores ?? []} />
-        <TopLista titulo="Top 5 perdedores del día" entidades={top.perdedores ?? []} />
+        <TopLista titulo="Top 5 Alzas" entidades={top.ganadores ?? []} />
+        <TopLista titulo="Top 5 Bajas" entidades={top.perdedores ?? []} />
       </div>
 
-      <section className="cta">
-        <div className="cta-texto">
-          <h2>Compara, decide, avanza.</h2>
-          <p>Consulta el ranking completo por sector, dimensión y periodo.</p>
-        </div>
-        <Link to="/ranking" className="cta-boton">Ver ranking →</Link>
-      </section>
     </div>
   )
 }

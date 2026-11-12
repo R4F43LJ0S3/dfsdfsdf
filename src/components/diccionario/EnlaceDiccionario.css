@@ -1,0 +1,38 @@
+.dic-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(58, 108, 168, 0.28);
+  background: rgba(58, 108, 168, 0.08);
+  color: var(--color-azul-acero);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.dic-enlace:hover {
+  background: rgba(58, 108, 168, 0.14);
+  border-color: var(--color-azul-acero);
+}
+
+.dic-enlace-compacto {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+}
+
+html[data-theme='dark'] .dic-enlace {
+  color: #8DB8E8;
+  background: rgba(141, 184, 232, 0.10);
+  border-color: rgba(141, 184, 232, 0.25);
+}
+
+html[data-theme='dark'] .dic-enlace:hover {
+  background: rgba(141, 184, 232, 0.18);
+  border-color: #8DB8E8;
+}

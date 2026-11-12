@@ -31,12 +31,13 @@ export default function IndiceGeneral({ indice }) {
 
   return (
     <section className="tarjeta">
-      <p className="etiqueta">Índice general</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="etiqueta">Índice general</span>
+        <span className="texto-suave mono-num">{fechaIso(indice.fecha)}</span>
+      </div>
       <div className="indice-fila">
         <span className="indice-valor mono-num">{num(indice.valor, 1)}</span>
         <Variacion valor={indice.variacion} />
-        {indice.puntos !== undefined && <span className="texto-suave">{num(indice.puntos, 1)} puntos vs cierre anterior</span>}
-        {indice.serie?.length > 1 && <span className="texto-suave indice-periodo">Últimos 30 días</span>}
       </div>
       {indice.serie?.length > 1 && <Sparkline serie={indice.serie} />}
       {celdas.length > 0 && (
@@ -49,7 +50,6 @@ export default function IndiceGeneral({ indice }) {
           ))}
         </div>
       )}
-      <p className="texto-suave nota">Datos al {fechaIso(indice.fecha)}</p>
     </section>
   )
 }

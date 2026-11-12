@@ -12,9 +12,6 @@ export default function RutaPendiente({ texto, rutas = [] }) {
         <ul>
           {rutas.map((r) => <li key={r}><code>{r}</code></li>)}
         </ul>
-        <p className="adm-pendiente-nota">
-          Cuando estén publicadas en producción, se configuran en <code>src/services/endpoints.js</code> y esta sección quedará enlazada automáticamente.
-        </p>
       </div>
     </div>
   )
