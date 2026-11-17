@@ -1,0 +1,5 @@
+# React Router usa rutas del lado del cliente (/login, /ranking, /graficas).
+# Sin esta regla, al recargar o entrar directo a una de esas rutas el host
+# busca un archivo que no existe y devuelve 404.
+# Esto le dice que sirva siempre index.html y deje que React resuelva la ruta.
+/*    /index.html   200

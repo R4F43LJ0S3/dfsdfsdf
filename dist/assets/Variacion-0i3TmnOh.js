@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-C06cr5BR.js";import{h as t}from"./index-CTp4WllJ.js";var n=e();function r({valor:e}){let r=e>0,i=e<0,a=r?`badge-up`:i?`badge-down`:`badge-eq`,o=r?`▲`:i?`▼`:`–`;return(0,n.jsxs)(`span`,{className:`${a} mono-num`,children:[o,` `,t(e)]})}export{r as t};
