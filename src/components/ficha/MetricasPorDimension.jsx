@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { AlertCircle, Info } from 'lucide-react'
-import { num } from '../../utils/format'
+import { num, valorMetrica } from '../../utils/format'
 
 const ORDEN_DIMENSIONES_PREFERIDO = [
   'Rentabilidad',
@@ -200,9 +200,7 @@ export default function MetricasPorDimension({
                     <div className="ficha-metrica-card-valores">
                       <div className="ficha-metrica-card-dato">
                         <strong className="ficha-metrica-card-val mono-num">
-                          {m.valor !== null && m.valor !== undefined
-                            ? num(m.valor, 2)
-                            : '—'}
+                          {valorMetrica(m)}
                         </strong>
                       </div>
 

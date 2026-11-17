@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { X, Calculator, Calendar, Building2, Gauge } from 'lucide-react'
-import { num, fechaIso } from '../../utils/format'
+import { num, fechaIso, valorMetrica } from '../../utils/format'
 import EnlaceDiccionario from '../diccionario/EnlaceDiccionario'
 
 // HU-FE-03 CA 3: Detalle interactivo de métrica (Definición, Fórmula y Linaje)
@@ -80,9 +80,7 @@ export default function MetricaDetalleModal({ metrica, onCerrar }) {
           <div className="ficha-modal-dato-card">
             <span className="ficha-modal-dato-label">Valor reportado</span>
             <strong className="ficha-modal-dato-valor mono-num">
-              {metrica.valor !== null && metrica.valor !== undefined
-                ? num(metrica.valor, 2)
-                : '—'}
+              {valorMetrica(metrica)}
             </strong>
           </div>
 
