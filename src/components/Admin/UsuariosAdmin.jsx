@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, Pencil, UserX, UserCheck, Search } from 'lucide-react'
+import { UserPlus, Pencil, UserX, Search } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { extraerMensajeError } from '../../services/authService'
 import {
@@ -7,15 +7,18 @@ import {
   crearUsuario,
   editarUsuario,
   cambiarEstadoUsuario,
+  catalogoRolesDesde,
   ESTADOS_USUARIO,
-  RUTAS_ESPERADAS,
 } from '../../services/adminService'
-import { ROLES_CATALOGO } from '../../constants/roles'
 import { claveComparacion } from '../../utils/texto'
 import UsuarioFormulario from './UsuarioFormulario'
-import RutaPendiente from './RutaPendiente'
 
 // HU-FE-07 CA 1: crear, editar y desactivar usuarios con sus roles
+// Rutas reales del servidor (todas exigen rol Administrador):
+//   GET    /api/v1/usuarios              lista (solo los activos)
+//   POST   /api/v1/usuarios/registrar    crear
+//   PUT    /api/v1/usuarios/{id}         editar
+//   DELETE /api/v1/usuarios/{id}         baja lógica -> estado 'inactivo'
 
 const ETIQUETA_ESTADO = {
   [ESTADOS_USUARIO.ACTIVO]: 'Activo',
@@ -23,11 +26,22 @@ const ETIQUETA_ESTADO = {
   [ESTADOS_USUARIO.BLOQUEADO]: 'Bloqueado',
 }
 
+// El servidor responde estos casos con un código propio; se traducen a algo entendible
+function mensajeDeBaja(err, respaldo) {
+  const codigo = String(err?.response?.data?.code ?? err?.response?.data?.detail ?? '')
+  if (err?.response?.status === 409 || codigo.includes('ultimo.administrador')) {
+    return 'No se puede desactivar: el sistema quedaría sin ningún administrador activo.'
+  }
+  if (err?.response?.status === 422 || codigo.includes('autoeliminar')) {
+    return 'Un administrador no puede desactivar su propia cuenta.'
+  }
+  return extraerMensajeError(err, respaldo)
+}
+
 export default function UsuariosAdmin() {
   const { usuario: sesion } = useAuth()
   const [usuarios, setUsuarios] = useState(null)
   const [errorCarga, setErrorCarga] = useState('')
-  const [listaPendiente, setListaPendiente] = useState(false) // el backend aun no publica GET /usuarios
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState('')
   const [formulario, setFormulario] = useState(null) // null = cerrado, {} = nuevo, {usuario} = editar
@@ -43,8 +57,7 @@ export default function UsuariosAdmin() {
         setUsuarios(lista)
       })
       .catch((err) => {
-        if (err?.pendiente) setListaPendiente(true)
-        else setErrorCarga(extraerMensajeError(err, 'No se pudo cargar la lista de usuarios.'))
+        setErrorCarga(extraerMensajeError(err, 'No se pudo cargar la lista de usuarios.'))
         setUsuarios([])
       })
 
@@ -55,8 +68,7 @@ export default function UsuariosAdmin() {
       .then((lista) => vigente && setUsuarios(lista))
       .catch((err) => {
         if (!vigente) return
-        if (err?.pendiente) setListaPendiente(true)
-        else setErrorCarga(extraerMensajeError(err, 'No se pudo cargar la lista de usuarios.'))
+        setErrorCarga(extraerMensajeError(err, 'No se pudo cargar la lista de usuarios.'))
         setUsuarios([])
       })
     return () => { vigente = false }
@@ -79,6 +91,9 @@ export default function UsuariosAdmin() {
     return () => window.removeEventListener('keydown', alPresionar)
   }, [confirmar, procesando])
 
+  // Los ids de rol verdaderos salen de los propios usuarios; el catálogo local completa el resto
+  const roles = useMemo(() => catalogoRolesDesde(usuarios ?? []), [usuarios])
+
   const visibles = useMemo(() => {
     if (!usuarios) return []
     const q = claveComparacion(busqueda)
@@ -91,7 +106,7 @@ export default function UsuariosAdmin() {
   // El administrador no se puede desactivar a sí mismo (se quedaría sin acceso)
   const esUnoMismo = (u) =>
     (sesion?.idUsuario && sesion.idUsuario === u.id) ||
-    (sesion?.email && sesion.email.toLowerCase() === u.email.toLowerCase())
+    (sesion?.email && u.email && sesion.email.toLowerCase() === u.email.toLowerCase())
 
   const guardar = async (datos) => {
     try {
@@ -109,22 +124,25 @@ export default function UsuariosAdmin() {
       await cargar()
     } catch (err) {
       // El formulario muestra este mensaje sin cerrarse
-      throw { mensaje: extraerMensajeError(err, 'No se pudo guardar el usuario.') }
+      const estado = err?.response?.status
+      const codigo = String(err?.response?.data?.code ?? err?.response?.data?.detail ?? '')
+      let mensaje
+      if (estado === 409) mensaje = 'Ya existe otro usuario con ese correo.'
+      else if (codigo.includes('rol.invalido')) mensaje = 'El rol elegido no existe en la base de datos. Avisa a Backend para confirmar los ids de seguridad.roles.'
+      else mensaje = extraerMensajeError(err, 'No se pudo guardar el usuario.')
+      throw { mensaje }
     }
   }
 
-  const cambiarEstado = async (u, estado) => {
+  const desactivar = async (u) => {
     setProcesando(true)
     try {
-      await cambiarEstadoUsuario(u.id, estado)
-      setAviso({
-        tipo: 'ok',
-        texto: estado === ESTADOS_USUARIO.ACTIVO ? `${u.nombreCompleto} quedó activo.` : `${u.nombreCompleto} quedó desactivado y ya no podrá iniciar sesión.`,
-      })
+      await cambiarEstadoUsuario(u.id, ESTADOS_USUARIO.INACTIVO)
+      setAviso({ tipo: 'ok', texto: `${u.nombreCompleto} quedó desactivado y ya no podrá iniciar sesión.` })
       setConfirmar(null)
       await cargar()
     } catch (err) {
-      setAviso({ tipo: 'error', texto: extraerMensajeError(err, 'No se pudo cambiar el estado.') })
+      setAviso({ tipo: 'error', texto: mensajeDeBaja(err, 'No se pudo desactivar el usuario.') })
       setConfirmar(null)
     } finally {
       setProcesando(false)
@@ -139,21 +157,17 @@ export default function UsuariosAdmin() {
         <div>
           <h2 id="adm-usuarios-titulo">Usuarios</h2>
           <p className="adm-texto-suave">
-            {listaPendiente
-              ? 'Puedes crear usuarios; la lista aparecerá cuando el backend publique la ruta correspondiente.'
-              : usuarios ? `${usuarios.length} usuarios · ${activos} activos` : 'Cargando…'}
+            {usuarios ? `${usuarios.length} usuarios · ${activos} activos` : 'Cargando…'}
           </p>
         </div>
         <button
           type="button"
-          className="adm-btn adm-btn-principal adm-btn-deshabilitado"
-          disabled={true}
-          title="Función temporalmente deshabilitada: pendiente de activación en el backend"
-          aria-disabled="true"
+          className="adm-btn adm-btn-principal"
+          onClick={() => setFormulario({})}
+          disabled={procesando}
         >
           <UserPlus size={18} aria-hidden="true" />
           <span>Nuevo usuario</span>
-          <span className="adm-badge-pendiente">(Próximamente)</span>
         </button>
       </div>
 
@@ -163,38 +177,31 @@ export default function UsuariosAdmin() {
         </p>
       )}
 
-      {!listaPendiente && (
-        <div className="adm-filtros">
-          <div className="adm-buscador">
-            <Search size={17} aria-hidden="true" />
-            <label htmlFor="adm-buscar" className="solo-lector">Buscar usuario</label>
-            <input
-              id="adm-buscar"
-              type="search"
-              placeholder="Buscar por nombre o correo"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              maxLength={80}
-            />
-          </div>
-          <label htmlFor="adm-filtro-rol" className="solo-lector">Filtrar por rol</label>
-          <select id="adm-filtro-rol" value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
-            <option value="">Todos los roles</option>
-            {ROLES_CATALOGO.map((r) => (
-              <option key={r.id} value={r.id}>{r.nombre}</option>
-            ))}
-          </select>
+      <div className="adm-filtros">
+        <div className="adm-buscador">
+          <Search size={17} aria-hidden="true" />
+          <label htmlFor="adm-buscar" className="solo-lector">Buscar usuario</label>
+          <input
+            id="adm-buscar"
+            type="search"
+            placeholder="Buscar por nombre o correo"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            maxLength={80}
+          />
         </div>
-      )}
+        <label htmlFor="adm-filtro-rol" className="solo-lector">Filtrar por rol</label>
+        <select id="adm-filtro-rol" value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
+          <option value="">Todos los roles</option>
+          {roles.map((r) => (
+            <option key={r.id} value={r.id}>{r.nombre}</option>
+          ))}
+        </select>
+      </div>
 
       <div className="adm-tarjeta adm-tabla-tarjeta">
         {errorCarga && <p className="adm-alerta adm-alerta-error adm-margen" role="alert">{errorCarga}</p>}
-        {listaPendiente ? (
-          <RutaPendiente
-            texto="Para mostrar, editar y desactivar los usuarios de la base de datos, el backend debe publicar estas rutas:"
-            rutas={[RUTAS_ESPERADAS.listarUsuarios, RUTAS_ESPERADAS.editarUsuario, RUTAS_ESPERADAS.cambiarEstadoUsuario]}
-          />
-        ) : !usuarios ? (
+        {!usuarios ? (
           <p className="adm-estado">Cargando usuarios…</p>
         ) : visibles.length === 0 ? (
           <p className="adm-estado">No hay usuarios que coincidan con la búsqueda.</p>
@@ -237,32 +244,21 @@ export default function UsuariosAdmin() {
                             type="button"
                             className="adm-btn-tabla"
                             onClick={() => setFormulario({ usuario: u })}
+                            disabled={procesando}
                             aria-label={`Editar a ${u.nombreCompleto}`}
                           >
                             <Pencil size={16} aria-hidden="true" /> Editar
                           </button>
-                          {activo ? (
-                            <button
-                              type="button"
-                              className="adm-btn-tabla adm-btn-peligro"
-                              onClick={() => setConfirmar(u)}
-                              disabled={yo || procesando}
-                              title={yo ? 'No puedes desactivar tu propia cuenta' : undefined}
-                              aria-label={`Desactivar a ${u.nombreCompleto}`}
-                            >
-                              <UserX size={16} aria-hidden="true" /> Desactivar
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              className="adm-btn-tabla adm-btn-exito"
-                              onClick={() => cambiarEstado(u, ESTADOS_USUARIO.ACTIVO)}
-                              disabled={procesando}
-                              aria-label={`Activar a ${u.nombreCompleto}`}
-                            >
-                              <UserCheck size={16} aria-hidden="true" /> Activar
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            className="adm-btn-tabla adm-btn-peligro"
+                            onClick={() => setConfirmar(u)}
+                            disabled={yo || procesando || !activo}
+                            title={yo ? 'No puedes desactivar tu propia cuenta' : undefined}
+                            aria-label={`Desactivar a ${u.nombreCompleto}`}
+                          >
+                            <UserX size={16} aria-hidden="true" /> Desactivar
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -277,6 +273,7 @@ export default function UsuariosAdmin() {
       {formulario && (
         <UsuarioFormulario
           usuario={formulario.usuario}
+          roles={roles}
           onGuardar={guardar}
           onCerrar={() => setFormulario(null)}
         />
@@ -287,7 +284,8 @@ export default function UsuariosAdmin() {
           <div className="adm-modal adm-modal-chico" role="alertdialog" aria-modal="true" aria-labelledby="adm-conf-titulo" aria-describedby="adm-conf-texto">
             <h2 id="adm-conf-titulo">¿Desactivar a {confirmar.nombreCompleto}?</h2>
             <p id="adm-conf-texto" className="adm-texto-suave">
-              No podrá iniciar sesión. Sus datos se conservan para la bitácora y lo puedes activar de nuevo cuando quieras.
+              No podrá iniciar sesión y saldrá de esta lista. Sus datos, reglas y bitácora se conservan,
+              pero volver a activarlo se hace desde la base de datos.
             </p>
             <div className="adm-modal-acciones">
               <button type="button" className="adm-btn adm-btn-secundario" onClick={() => setConfirmar(null)} disabled={procesando} autoFocus>
@@ -296,7 +294,7 @@ export default function UsuariosAdmin() {
               <button
                 type="button"
                 className="adm-btn adm-btn-peligro-lleno"
-                onClick={() => cambiarEstado(confirmar, ESTADOS_USUARIO.INACTIVO)}
+                onClick={() => desactivar(confirmar)}
                 disabled={procesando}
               >
                 {procesando ? 'Desactivando…' : 'Sí, desactivar'}

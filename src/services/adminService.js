@@ -7,7 +7,7 @@
 import { http } from './api'
 import { ENDPOINTS } from './endpoints'
 import { registrarUsuario } from './authService'
-import { nombreRol } from '../constants/roles'
+import { nombreRol, normalizarNombreRol, ROLES_CATALOGO } from '../constants/roles'
 import { normalizarIdentificador } from '../utils/texto'
 import { validarPesos, aCentesimas } from '../constants/validaciones'
 
@@ -38,22 +38,47 @@ function errorLocal(status, detail) {
   return err
 }
 
-// Agrega el nombre del rol a cada usuario para visualización uniforme
-export const conRol = (u) => ({
-  ...u,
-  estado: String(u.estado ?? ESTADOS_USUARIO.ACTIVO).toLowerCase(),
-  rol: u.rol ?? nombreRol(u.idRol),
-  nombreCompleto: u.nombreCompleto ?? `${u.primerNombre ?? ''} ${u.primerApellido ?? ''}`.trim(),
-})
+// Normaliza el UsuarioDto que responde el servidor a la forma que usa la pantalla.
+// El backend envia: idUsuario, email, primerNombre, segundoNombre, primerApellido,
+// segundoApellido, idRol, rol, estado. Nunca envia el hash de la contrasena.
+export const conRol = (u) => {
+  const primerNombre = String(u.primerNombre ?? '').trim()
+  const primerApellido = String(u.primerApellido ?? '').trim()
+  return {
+    ...u,
+    id: u.idUsuario ?? u.id,
+    primerNombre,
+    primerApellido,
+    estado: String(u.estado ?? ESTADOS_USUARIO.ACTIVO).toLowerCase(),
+    rol: u.rol ?? nombreRol(u.idRol),
+    nombreCompleto: `${primerNombre} ${primerApellido}`.trim() || u.email || 'Sin nombre',
+  }
+}
+
+// El backend no publica un catalogo de roles. Cada usuario si trae su idRol real junto
+// al nombre del rol, asi que se toman esos ids verdaderos y se completan los que falten
+// con el catalogo local de constants/roles.js.
+export function catalogoRolesDesde(usuarios) {
+  const idsReales = new Map()
+  for (const u of usuarios ?? []) {
+    if (u?.idRol && u?.rol) idsReales.set(normalizarNombreRol(u.rol), u.idRol)
+  }
+  return ROLES_CATALOGO.map((r) => {
+    const idReal = idsReales.get(normalizarNombreRol(r.nombre))
+    return idReal && idReal !== r.id ? { ...r, id: idReal } : r
+  })
+}
 
 // ---------------------------------------------------------------- Usuarios
 
+// GET /api/v1/usuarios - solo Administrador. Devuelve unicamente los usuarios activos.
 export async function listarUsuarios() {
   if (!ENDPOINTS.listarUsuarios) throw errorRutaPendiente('listarUsuarios')
   const { data } = await http.get(ENDPOINTS.listarUsuarios)
   return (Array.isArray(data) ? data : data?.items ?? []).map(conRol)
 }
 
+// POST /api/v1/usuarios/registrar - responde el UUID del usuario creado.
 export async function crearUsuario({ email, password, primerNombre, primerApellido, idRol }) {
   const correo = normalizarIdentificador(email)
   const nombre = String(primerNombre).normalize('NFC').trim()
@@ -62,23 +87,47 @@ export async function crearUsuario({ email, password, primerNombre, primerApelli
   return registrarUsuario({ email: correo, password, primerNombre: nombre, primerApellido: apellido, idRol })
 }
 
-export async function editarUsuario(id, { primerNombre, primerApellido, idRol }) {
-  const cambios = {
-    primerNombre: String(primerNombre).normalize('NFC').trim(),
-    primerApellido: String(primerApellido).normalize('NFC').trim(),
+// PUT /api/v1/usuarios/{id} - el cuerpo viaja completo (ActualizarUsuarioSolicitud).
+// Si password va vacio, el backend conserva la contrasena actual.
+export async function editarUsuario(id, datos) {
+  if (!ENDPOINTS.editarUsuario) throw errorRutaPendiente('editarUsuario')
+  const { email, primerNombre, primerApellido, segundoNombre, segundoApellido, idRol, password } = datos
+
+  const limpiar = (v) => String(v ?? '').normalize('NFC').trim()
+  const opcional = (v) => limpiar(v) || null
+
+  const cuerpo = {
+    email: normalizarIdentificador(email),
+    primerNombre: limpiar(primerNombre),
+    segundoNombre: opcional(segundoNombre),
+    primerApellido: limpiar(primerApellido),
+    segundoApellido: opcional(segundoApellido),
     idRol,
   }
-  if (!ENDPOINTS.editarUsuario) throw errorRutaPendiente('editarUsuario')
-  const { data } = await http.put(ENDPOINTS.editarUsuario.replace('{id}', id), cambios)
+
+  const clave = String(password ?? '').trim()
+  if (clave) cuerpo.password = clave
+
+  const { data } = await http.put(ENDPOINTS.editarUsuario(id), cuerpo)
+  return data && typeof data === 'object' ? conRol(data) : data
+}
+
+// DELETE /api/v1/usuarios/{id} - baja logica: deja el usuario en 'inactivo' y conserva
+// sus reglas, notificaciones y bitacora. Es idempotente.
+// El backend rechaza desactivar al ultimo administrador (409) y la autobaja (422).
+export async function desactivarUsuario(id) {
+  if (!ENDPOINTS.eliminarUsuario) throw errorRutaPendiente('cambiarEstadoUsuario')
+  const { data } = await http.delete(ENDPOINTS.eliminarUsuario(id))
   return data
 }
 
-// Desactivar NO borra: el usuario queda guardado para bitácora y auditoría
+// Puente con la pantalla, que razona en estados. El servidor solo publica la baja.
 export async function cambiarEstadoUsuario(id, estado) {
-  if (!Object.values(ESTADOS_USUARIO).includes(estado)) throw errorLocal(422, 'Estado de usuario no válido.')
-  if (!ENDPOINTS.cambiarEstadoUsuario) throw errorRutaPendiente('cambiarEstadoUsuario')
-  const { data } = await http.patch(ENDPOINTS.cambiarEstadoUsuario.replace('{id}', id), { estado })
-  return data
+  if (!Object.values(ESTADOS_USUARIO).includes(estado)) throw errorLocal(422, 'Estado de usuario no valido.')
+  if (estado === ESTADOS_USUARIO.ACTIVO) {
+    throw errorLocal(501, 'Volver a activar un usuario se hace en la base de datos: el servidor solo publica la baja logica.')
+  }
+  return desactivarUsuario(id)
 }
 
 // ---------------------------------------------------------------- Pesos (Configuración del IC)

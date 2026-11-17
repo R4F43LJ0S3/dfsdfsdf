@@ -10,30 +10,47 @@ import {
 
 // HU-FE-07 CA 1: formulario para crear o editar un usuario (modal sobre la tabla)
 // Si recibe "usuario" es edición; si no, es creación.
+// Crear  -> POST /api/v1/usuarios/registrar  (correo y contraseña obligatorios)
+// Editar -> PUT  /api/v1/usuarios/{id}       (contraseña opcional: vacía conserva la actual)
 
 const VACIO = { primerNombre: '', primerApellido: '', email: '', password: '', idRol: '' }
 
 function validar(datos, esEdicion) {
   const errores = {}
+
   const nombre = validarNombrePersona(datos.primerNombre, 'El nombre')
   if (!nombre.valido) errores.primerNombre = nombre.error
+
   const apellido = validarNombrePersona(datos.primerApellido, 'El apellido')
   if (!apellido.valido) errores.primerApellido = apellido.error
-  if (!esEdicion) {
-    const correo = validarCorreoUsuario(datos.email)
-    if (!correo.valido) errores.email = correo.error
+
+  const correo = validarCorreoUsuario(datos.email)
+  if (!correo.valido) errores.email = correo.error
+
+  // Al crear la contraseña es obligatoria; al editar solo se revisa si el admin escribió una
+  if (!esEdicion || String(datos.password ?? '').trim()) {
     const clave = validarPasswordNueva(datos.password)
     if (!clave.valido) errores.password = clave.error
   }
+
   if (!datos.idRol) errores.idRol = 'Elige un rol.'
+
   return errores
 }
 
-export default function UsuarioFormulario({ usuario, onGuardar, onCerrar }) {
+export default function UsuarioFormulario({ usuario, roles, onGuardar, onCerrar }) {
   const esEdicion = Boolean(usuario)
+  const catalogo = roles?.length ? roles : ROLES_CATALOGO
+
   const [datos, setDatos] = useState(() =>
     esEdicion
-      ? { primerNombre: usuario.primerNombre, primerApellido: usuario.primerApellido, email: usuario.email, password: '', idRol: usuario.idRol }
+      ? {
+          primerNombre: usuario.primerNombre ?? '',
+          primerApellido: usuario.primerApellido ?? '',
+          email: usuario.email ?? '',
+          password: '',
+          idRol: usuario.idRol ?? '',
+        }
       : VACIO,
   )
   const [errores, setErrores] = useState({})
@@ -67,7 +84,12 @@ export default function UsuarioFormulario({ usuario, onGuardar, onCerrar }) {
 
     setGuardando(true)
     try {
-      await onGuardar(datos)
+      // Los segundos nombres no se editan aquí, pero se reenvían para no borrarlos en el PUT
+      await onGuardar({
+        ...datos,
+        segundoNombre: usuario?.segundoNombre ?? null,
+        segundoApellido: usuario?.segundoApellido ?? null,
+      })
     } catch (err) {
       setErrorGeneral(err?.mensaje ?? 'No se pudo guardar. Intenta de nuevo.')
       setGuardando(false)
@@ -107,18 +129,26 @@ export default function UsuarioFormulario({ usuario, onGuardar, onCerrar }) {
             {campo('primerApellido', 'Apellido', { maxLength: LIMITES_CAMPOS.NOMBRE_MAX, autoComplete: 'off' })}
           </div>
 
-          {esEdicion ? (
-            <div className="adm-campo">
-              <span className="adm-etiqueta">Correo</span>
-              <p className="adm-solo-lectura">{datos.email}</p>
-              <small className="adm-ayuda">El correo identifica al usuario y no se cambia.</small>
-            </div>
-          ) : (
-            <>
-              {campo('email', 'Correo', { type: 'email', maxLength: LIMITES_CAMPOS.EMAIL_MAX, autoComplete: 'off', spellCheck: false, placeholder: 'nombre@siftc.edu.co' })}
-              {campo('password', 'Contraseña inicial', { type: 'password', maxLength: LIMITES_CAMPOS.PASSWORD_MAX, autoComplete: 'new-password' })}
-              {!errores.password && <small className="adm-ayuda adm-ayuda-arriba">Mínimo 8 caracteres, con letras y números. El usuario la debe cambiar al entrar.</small>}
-            </>
+          {campo('email', 'Correo', {
+            type: 'email',
+            maxLength: LIMITES_CAMPOS.EMAIL_MAX,
+            autoComplete: 'off',
+            spellCheck: false,
+            placeholder: 'nombre@siftc.edu.co',
+          })}
+
+          {campo('password', esEdicion ? 'Contraseña nueva (opcional)' : 'Contraseña inicial', {
+            type: 'password',
+            maxLength: LIMITES_CAMPOS.PASSWORD_MAX,
+            autoComplete: 'new-password',
+            placeholder: esEdicion ? 'Déjala vacía para no cambiarla' : '',
+          })}
+          {!errores.password && (
+            <small className="adm-ayuda adm-ayuda-arriba">
+              {esEdicion
+                ? 'Si escribes una contraseña aquí, reemplazará la actual del usuario.'
+                : 'Mínimo 8 caracteres, con letras y números. El usuario la debe cambiar al entrar.'}
+            </small>
           )}
 
           <div className="adm-campo">
@@ -132,7 +162,7 @@ export default function UsuarioFormulario({ usuario, onGuardar, onCerrar }) {
               disabled={guardando}
             >
               <option value="">Selecciona un rol…</option>
-              {ROLES_CATALOGO.map((r) => (
+              {catalogo.map((r) => (
                 <option key={r.id} value={r.id}>{r.nombre} — {r.descripcion}</option>
               ))}
             </select>
@@ -141,22 +171,12 @@ export default function UsuarioFormulario({ usuario, onGuardar, onCerrar }) {
 
           {errorGeneral && <p className="adm-alerta adm-alerta-error" role="alert">{errorGeneral}</p>}
 
-          <p className="adm-alerta adm-alerta-aviso" role="status">
-            Función en modo informativo: el registro de usuarios está temporalmente deshabilitado hasta su activación en el backend.
-          </p>
-
           <div className="adm-modal-acciones">
             <button type="button" className="adm-btn adm-btn-secundario" onClick={onCerrar} disabled={guardando}>
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="adm-btn adm-btn-principal adm-btn-deshabilitado"
-              disabled={true}
-              title="Registro temporalmente deshabilitado: pendiente de activación en el backend"
-              aria-disabled="true"
-            >
-              {esEdicion ? 'Guardar cambios (Pendiente)' : 'Crear usuario (Próximamente)'}
+            <button type="submit" className="adm-btn adm-btn-principal" disabled={guardando}>
+              {guardando ? 'Guardando…' : esEdicion ? 'Guardar cambios' : 'Crear usuario'}
             </button>
           </div>
         </form>

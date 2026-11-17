@@ -13,7 +13,13 @@ export const ENDPOINTS = {
   login: '/auth/login',
 
   // --- Usuarios (grupo "Usuarios") ---
+  // Todas exigen rol Administrador. Confirmadas contra el OpenAPI del servidor.
+  listarUsuarios: '/usuarios',
   registrarUsuario: '/usuarios/registrar',
+  editarUsuario: (id) => `/usuarios/${id}`,
+  // DELETE es baja logica: deja el usuario en estado 'inactivo', no borra la fila.
+  eliminarUsuario: (id) => `/usuarios/${id}`,
+  // El backend no publica catalogo de roles; se arma desde los usuarios + constants/roles.js
   roles: null,
 
   // --- Entidades (grupo "Entidades") ---
