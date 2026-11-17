@@ -31,7 +31,12 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
   const [serieOhlc, setSerieOhlc] = useState([]);
   const [cargandoOhlc, setCargandoOhlc] = useState(false);
   const [errorOhlc, setErrorOhlc] = useState('');
-  const [tipoGrafica, setTipoGrafica] = useState('velas');
+  // null = automático. El contrato de la API (docs/api/openapi-v1.json) avisa que en
+  // Diaria y Mensual cada punto trae apertura=máximo=mínimo=cierre, porque el CSV de
+  // origen es mensual: dibujadas como velas salen planas (una rayita sin cuerpo ni mecha).
+  // Solo Trimestral agrupa tres meses y tiene rango real, así que es el único periodo
+  // donde la vela aporta algo. Por eso el tipo por defecto depende del periodo.
+  const [tipoElegido, setTipoElegido] = useState(null);
 
   const parametroUrl = searchParams.get('entidad');
   const parametroPeriodo = searchParams.get('periodo');
@@ -48,6 +53,8 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
     }
     return PERIODO_POR_DEFECTO;
   }, [parametroPeriodo]);
+
+  const tipoGrafica = tipoElegido ?? (periodo === 'trimestral' ? 'velas' : 'linea');
 
   const [hoverData, setHoverData] = useState(null);
 
@@ -415,6 +422,12 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
   const codigoMostrado = entidadActiva?.codigo ?? entidadActiva?.codigo_entidad ?? ticker ?? '—';
   const sectorMostrado = entidadActiva?.sector ?? '—';
 
+  // Si el servidor mandó el mismo valor en apertura/máximo/mínimo/cierre, no hay rango que dibujar.
+  const serieEsPlana = useMemo(
+    () => serieOhlc.length > 0 && serieOhlc.every((v) => v.high === v.low),
+    [serieOhlc],
+  );
+
   const ultimoDato = serieOhlc[serieOhlc.length - 1];
   const datoMostrar = hoverData || ultimoDato;
   const variacionEntidad = entidadActiva?.variacionPct ?? entidadActiva?.variacion_porcentual ?? null;
@@ -490,14 +503,14 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
               <div className="grafica-type-toggle" role="group" aria-label="Tipo de gráfica">
                 <button
                   type="button"
-                  onClick={() => setTipoGrafica('velas')}
+                  onClick={() => setTipoElegido('velas')}
                   className={`grafica-toggle-btn ${tipoGrafica === 'velas' ? 'active' : ''}`}
                 >
                   Velas
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTipoGrafica('linea')}
+                  onClick={() => setTipoElegido('linea')}
                   className={`grafica-toggle-btn ${tipoGrafica === 'linea' ? 'active' : ''}`}
                 >
                   Línea
@@ -535,6 +548,14 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
               >
                 Cargando serie histórica OHLC…
               </div>
+            )}
+
+            {!cargando && !errorOhlc && serieEsPlana && tipoGrafica === 'velas' && (
+              <p className="grafica-aviso-plana" role="status">
+                En <strong>{nombrePeriodo(periodo)}</strong> el servidor envía un único valor por
+                punto (apertura = máximo = mínimo = cierre), así que las velas salen planas.
+                Para ver velas con cuerpo elige <strong>Trimestral</strong>, que agrupa tres meses.
+              </p>
             )}
 
             {!cargando && errorOhlc && (

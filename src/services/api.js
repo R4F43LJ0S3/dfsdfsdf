@@ -57,15 +57,22 @@ http.interceptors.response.use(
 
 // --- Arranque en frío de Render -------------------------------------------------
 
-// Un fallo "de arranque": no hay respuesta HTTP (red caída, instancia dormida)
-// o venció el timeout. Un 4xx/5xx NO entra aquí: el servidor sí contestó.
-const esFalloDeArranque = (err) =>
-  err?.code === 'ECONNABORTED' || err?.code === 'ERR_NETWORK' || !err?.response
+// Render (plan gratuito) contesta 502/503/504 desde su router mientras la instancia
+// duerme, arranca o se está reiniciando. Esa respuesta NO viene de la API: es un fallo
+// temporal de infraestructura y hay que reintentarlo igual que una caída de red.
+// Antes se excluían todos los 5xx y por eso un 503 rompía la pantalla al primer intento.
+const ESTADOS_REINTENTABLES = [502, 503, 504]
+
+const esFalloDeArranque = (err) => {
+  if (err?.code === 'ECONNABORTED' || err?.code === 'ERR_NETWORK' || !err?.response) return true
+  return ESTADOS_REINTENTABLES.includes(err.response.status)
+}
 
 const esperar = (ms) => new Promise((ok) => setTimeout(ok, ms))
 
-// Reintenta una vez si la instancia estaba dormida y la primera petición murió esperando.
-async function conReintentoDeArranque(peticion, intentos = 2) {
+// Reintenta con espera creciente (3 s, 6 s, 12 s) mientras la instancia de Render
+// despierta o se reinicia. Un 4xx (401, 403, 404...) nunca se reintenta: es definitivo.
+async function conReintentoDeArranque(peticion, intentos = 4) {
   let ultimoError
   for (let i = 0; i < intentos; i += 1) {
     try {
@@ -73,11 +80,87 @@ async function conReintentoDeArranque(peticion, intentos = 2) {
     } catch (err) {
       ultimoError = err
       if (!esFalloDeArranque(err) || i === intentos - 1) throw err
-      console.warn(`[API] El backend no respondió (intento ${i + 1}/${intentos}). Puede estar despertando en Render; reintentando...`)
-      await esperar(3000)
+      const espera = 3000 * 2 ** i
+      const motivo = err?.response ? `HTTP ${err.response.status}` : (err?.code ?? 'sin respuesta')
+      console.warn(`[API] El backend devolvió ${motivo} (intento ${i + 1}/${intentos}). Puede estar despertando o reiniciándose en Render; reintentando en ${espera / 1000} s...`)
+      await esperar(espera)
     }
   }
   throw ultimoError
+}
+
+// --- Deduplicación, caché corta y límite de concurrencia -------------------------
+
+// La instancia gratuita de Render atiende muy poca carga simultánea: cuando el front
+// le lanza una ráfaga de peticiones pesadas (el Comparador pide 5 rankings con
+// limit=200 a la vez) la instancia se satura y el router empieza a devolver 503.
+// Además había peticiones repetidas: el Tablero pedía GET /entidades tres veces
+// (getIndiceGeneral + getTop + getEntidades) y el Ticker una cuarta, todas idénticas.
+
+const MAX_SIMULTANEAS = 3
+const TTL_CACHE_MS = 15000
+
+const enVuelo = new Map()   // clave -> promesa compartida
+const cache = new Map()     // clave -> { expira, datos }
+
+let activas = 0
+const cola = []
+
+function liberarHueco() {
+  activas -= 1
+  const siguiente = cola.shift()
+  if (siguiente) siguiente()
+}
+
+// Deja pasar como mucho MAX_SIMULTANEAS peticiones a la vez; el resto espera turno.
+function tomarHueco() {
+  if (activas < MAX_SIMULTANEAS) {
+    activas += 1
+    return Promise.resolve()
+  }
+  return new Promise((listo) => {
+    cola.push(() => {
+      activas += 1
+      listo()
+    })
+  })
+}
+
+const claveDe = (url, params) => `${url}?${JSON.stringify(params ?? {}, Object.keys(params ?? {}).sort())}`
+
+/**
+ * GET con reintento de arranque, deduplicación de peticiones idénticas en vuelo,
+ * caché de 15 s y tope de peticiones simultáneas.
+ */
+function obtener(url, config = {}) {
+  const clave = claveDe(url, config.params)
+
+  const guardado = cache.get(clave)
+  if (guardado && guardado.expira > Date.now()) return Promise.resolve(guardado.datos)
+
+  // Si ya hay una petición idéntica viajando, se reutiliza en vez de lanzar otra.
+  const yaVa = enVuelo.get(clave)
+  if (yaVa) return yaVa
+
+  const promesa = (async () => {
+    await tomarHueco()
+    try {
+      const res = await conReintentoDeArranque(() => http.get(url, config))
+      cache.set(clave, { expira: Date.now() + TTL_CACHE_MS, datos: res })
+      return res
+    } finally {
+      liberarHueco()
+      enVuelo.delete(clave)
+    }
+  })()
+
+  enVuelo.set(clave, promesa)
+  return promesa
+}
+
+// Las escrituras (watchlist, aprobaciones) invalidan la caché para no leer datos viejos.
+export function limpiarCacheApi() {
+  cache.clear()
 }
 
 // Normaliza el parámetro periodo ('Diaria' | 'Mensual' | 'Trimestral') exigido por GET /api/v1/entidades/{id}/ohlc
@@ -142,18 +225,14 @@ export async function getEntidades(filtros = {}) {
   if (params.size !== undefined) {
     params.size = Math.min(100, Math.max(1, Number(params.size) || 100))
   }
-  const res = await conReintentoDeArranque(() =>
-    http.get(ENDPOINTS.entidades, { params }),
-  )
+  const res = await obtener(ENDPOINTS.entidades, { params })
   return aEntidades(res.data)
 }
 
 // GET /api/v1/entidades/{id}
 // Devuelve EntidadDto (id: uuid, codigo, nombre, sector, ic, variacion, variacionPct)
 export async function getEntidad(id) {
-  const res = await conReintentoDeArranque(() =>
-    http.get(ENDPOINTS.entidad(id)),
-  )
+  const res = await obtener(ENDPOINTS.entidad(id))
   return aEntidad(res.data)
 }
 
@@ -185,9 +264,7 @@ export async function getTop() {
 // Parámetros en docs/api/openapi-v1.json: id (uuid en ruta), periodo ('Diaria' | 'Mensual' | 'Trimestral')
 export async function getOhlc(idEntidad, periodo = PERIODO_POR_DEFECTO) {
   const periodoOhlc = normalizarPeriodoOhlc(periodo)
-  const res = await conReintentoDeArranque(() =>
-    http.get(ENDPOINTS.ohlc(idEntidad), { params: { periodo: periodoOhlc } }),
-  )
+  const res = await obtener(ENDPOINTS.ohlc(idEntidad), { params: { periodo: periodoOhlc } })
   return aSerieOhlc(res.data)
 }
 
@@ -204,9 +281,7 @@ export async function getMetricas(filtros = {}) {
   if (params.size !== undefined) {
     params.size = Math.min(100, Math.max(1, Number(params.size) || 100))
   }
-  const res = await conReintentoDeArranque(() =>
-    http.get(ENDPOINTS.metricas, { params }),
-  )
+  const res = await obtener(ENDPOINTS.metricas, { params })
   return res.data
 }
 
@@ -235,9 +310,7 @@ export async function getRanking(filtros = {}) {
   if (params.limit !== undefined) {
     params.limit = Math.min(200, Math.max(1, Number(params.limit) || 50))
   }
-  const res = await conReintentoDeArranque(() =>
-    http.get(ENDPOINTS.ranking, { params }),
-  )
+  const res = await obtener(ENDPOINTS.ranking, { params })
   return res.data
 }
 
@@ -258,19 +331,21 @@ export async function getPeriodos() {
 
 // GET /api/v1/watchlist
 export async function getWatchlist() {
-  const res = await conReintentoDeArranque(() => http.get(ENDPOINTS.watchlist))
+  const res = await obtener(ENDPOINTS.watchlist)
   return Array.isArray(res.data) ? res.data : res.data?.items ?? []
 }
 
 // POST /api/v1/watchlist/{idEntidad}
 export async function agregarAWatchlist(idEntidad) {
   const res = await conReintentoDeArranque(() => http.post(ENDPOINTS.watchlistEntidad(idEntidad)))
+  limpiarCacheApi()
   return res.data
 }
 
 // DELETE /api/v1/watchlist/{idEntidad}
 export async function quitarDeWatchlist(idEntidad) {
   const res = await conReintentoDeArranque(() => http.delete(ENDPOINTS.watchlistEntidad(idEntidad)))
+  limpiarCacheApi()
   return res.data
 }
 
@@ -279,7 +354,7 @@ export async function quitarDeWatchlist(idEntidad) {
 // GET /api/v1/aprobaciones
 // Roles admitidos: Administrador, Data Steward, Analista financiero, Auditor
 export async function getLotesPendientes() {
-  const res = await conReintentoDeArranque(() => http.get(ENDPOINTS.aprobaciones))
+  const res = await obtener(ENDPOINTS.aprobaciones)
   return Array.isArray(res.data) ? res.data : []
 }
 
@@ -287,6 +362,7 @@ export async function getLotesPendientes() {
 // Rol admitido: Analista financiero (segregación de funciones: no puede aprobar su propio lote)
 export async function aprobarLote(idLote) {
   const res = await conReintentoDeArranque(() => http.post(ENDPOINTS.aprobarLote(idLote)))
+  limpiarCacheApi()
   return res.data
 }
 
@@ -296,5 +372,6 @@ export async function rechazarLote(idLote, comentario) {
   const res = await conReintentoDeArranque(() =>
     http.post(ENDPOINTS.rechazarLote(idLote), { comentario: String(comentario ?? '').trim() }),
   )
+  limpiarCacheApi()
   return res.data
 }

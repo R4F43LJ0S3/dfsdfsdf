@@ -181,3 +181,15 @@ html[data-theme='dark'] .cambio-igual {
   .titulo-pagina { font-size: 1.35rem; }
   .boton-limpiar { width: 100%; }
 }
+
+/* Aviso de ranking reconstruido en el cliente porque el servidor no respondió */
+.estado-aviso {
+  border: 1px solid var(--color-border, #2D3958);
+  border-left: 3px solid #D9A441;
+  border-radius: 6px;
+  background: rgba(217, 164, 65, 0.1);
+  color: var(--color-text-muted, #A9B3CA);
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { getRanking, getSectores, getDimensiones, getPeriodos } from '../../services/api'
+import { getRanking, getSectores, getDimensiones, getPeriodos, getEntidades } from '../../services/api'
 import { puedeVerPosicionRanking } from '../../constants/permisos'
 import RankingTabla from './RankingTabla'
 import { PERIODO_POR_DEFECTO } from '../../constants/periodos'
@@ -26,6 +26,32 @@ function leerFiltros(params) {
   }
 }
 
+// Plan B cuando GET /ranking no responde (503 de Render, caída temporal del endpoint).
+// Reconstruye el ranking general ordenando por IC las entidades de GET /entidades,
+// que es el mismo criterio que ya usa la ficha de entidad en FinancialChart.jsx.
+// Ojo: solo sirve para el IC general. El puntaje por dimensión y el cambio de
+// posición los calcula el servidor, así que aquí no se pueden deducir.
+function rankingDesdeEntidades(lista) {
+  // Number(null) es 0, no NaN: sin esta comprobación una entidad sin IC entraría
+  // al ranking con un 0 inventado en vez de quedarse fuera.
+  const aNumero = (v) => (v === null || v === undefined || v === '' ? NaN : Number(v))
+
+  return (Array.isArray(lista) ? lista : [])
+    .map((e) => {
+      const variacion = aNumero(e.variacionPct ?? e.variacion_porcentual)
+      return {
+        entidadId: e.id,
+        entidad: e.nombre ?? e.nombre_entidad,
+        sector: e.sector,
+        ic: aNumero(e.ic ?? e.indice_competitividad),
+        variacionPct: Number.isFinite(variacion) ? variacion : null,
+      }
+    })
+    .filter((e) => Number.isFinite(e.ic))
+    .sort((a, b) => b.ic - a.ic)
+    .map((item, i) => ({ posicion: i + 1, cambioPosicion: null, ...item }))
+}
+
 // por si la api no los devuelve ordenados
 function ordenar(items, orden, dir) {
   const signo = dir === 'asc' ? 1 : -1
@@ -48,6 +74,7 @@ export default function Ranking() {
   const [catalogos, setCatalogos] = useState({ sectores: [], dimensiones: [], periodos: [] })
   const [resultado, setResultado] = useState({ clave: null, datos: null })
   const [error, setError] = useState(null)
+  const [aviso, setAviso] = useState(null)
   const clave = JSON.stringify([sector, dimension, periodo, orden, dir])
   const datos = resultado.datos
   const cargando = resultado.clave !== clave
@@ -70,12 +97,33 @@ export default function Ranking() {
         if (!vigente) return
         setResultado({ clave, datos: respuesta })
         setError(null)
+        setAviso(null)
       })
-      .catch((err) => {
+      .catch(async (err) => {
         if (!vigente) return
+
+        // Un 403 es definitivo: el rol no tiene permiso y no hay nada que recalcular.
         if (err?.response?.status === 403) {
           setError('Tu rol no tiene autorización para acceder al ranking de competitividad (HTTP 403 Forbidden).')
-        } else {
+          return
+        }
+
+        // El servidor no entregó el ranking. En vez de dejar la pantalla vacía,
+        // se arma el ranking general con las entidades, que sí responden.
+        try {
+          const items = rankingDesdeEntidades(await getEntidades({ size: 100 }))
+          if (!vigente) return
+          if (items.length === 0) throw err
+
+          setResultado({ clave, datos: { periodo, total: items.length, items } })
+          setError(null)
+          setAviso(
+            dimension
+              ? `El servidor no respondió al ranking (${err?.response?.status ?? 'sin respuesta'}). Se muestra el IC general calculado con los datos de las entidades: el puntaje de ${dimension} solo lo calcula el servidor.`
+              : `El servidor no respondió al ranking (${err?.response?.status ?? 'sin respuesta'}). Se muestra el IC general calculado con los datos de las entidades; el cambio de posición no está disponible.`,
+          )
+        } catch {
+          if (!vigente) return
           setError('No se pudo cargar el ranking. Intenta de nuevo.')
         }
       })
@@ -174,6 +222,9 @@ export default function Ranking() {
 
       {error && (
         <p role="alert" className="estado estado-error">{error}</p>
+      )}
+      {!error && aviso && (
+        <p role="status" className="estado estado-aviso">{aviso}</p>
       )}
       {!error && !filas && <p className="estado" aria-live="polite">Cargando ranking…</p>}
       {!error && filas && (
