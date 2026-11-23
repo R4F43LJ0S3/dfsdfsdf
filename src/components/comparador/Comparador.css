@@ -2,8 +2,7 @@
    Diseño Financiero Institucional (Clean Financial Design - Alta Densidad / Bajo Ruido) */
 
 .cmp { position: relative; display: flex; flex-direction: column; gap: 20px; }
-.cmp-titulo { font-size: 1.6rem; font-weight: 700; color: var(--color-text-on-light); letter-spacing: -0.02em; }
-.cmp-subtitulo { color: var(--color-text-muted); font-size: .85rem; margin-top: 4px; max-width: 72ch; }
+.cmp-titulo { font-size: clamp(1.30rem, 1.8vw, 1.55rem); font-weight: 700; color: var(--color-text-on-light); letter-spacing: -0.02em; }
 
 .cmp-tarjeta {
   background: var(--superficie);
@@ -37,7 +36,6 @@
   background: var(--superficie); color: var(--color-text-on-light); outline: none;
 }
 .cmp-buscar:focus { border-color: var(--color-azul-acero); }
-.cmp-ayuda { font-size: .78rem; color: var(--color-text-muted); margin: 4px 0 8px; }
 .cmp-lista-vacia { padding: 14px; font-size: .85rem; color: var(--color-text-muted); border: 1px dashed rgba(0, 0, 0, 0.12); border-radius: 6px; }
 
 .cmp-lista {
@@ -191,7 +189,6 @@ html[data-theme='dark'] .cmp-muestra { color: var(--cmp-oscuro); }
 .cmp-tabla td.cmp-mejor .mono-num { font-weight: 700; color: var(--color-azul-acero); }
 .cmp-estrella { color: var(--color-azul-acero); font-size: .85rem; }
 .cmp-sin-dato { color: var(--color-text-muted); }
-.cmp-pista-movil { display: none; font-size: .78rem; color: var(--color-text-muted); margin: -4px 0 8px; }
 
 .cmp .badge-eq {
   display: inline-flex; padding: 1px 6px; border-radius: 3px;
@@ -273,5 +270,4 @@ html[data-theme='dark'] .cmp-aviso-cerrar:hover { background: rgba(255, 255, 255
   .cmp-fila-nombre { max-width: 130px; }
   .cmp-tabla th, .cmp-tabla td { padding: 8px 10px; }
   .cmp-boton-secundario { width: 100%; }
-  .cmp-pista-movil { display: block; }
 }

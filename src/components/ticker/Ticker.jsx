@@ -1,14 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getEntidades } from '../../services/api'
+import { useCotizacionesSignalR } from '../../hooks/useCotizacionesSignalR'
 import { num, pct } from '../../utils/format'
 import './Ticker.css'
 
 export default function Ticker() {
-  const [entidades, setEntidades] = useState([])
+  const [entidadesBase, setEntidadesBase] = useState([])
+  const obtenerToken = useCallback(() => localStorage.getItem('token'), [])
+  const { cotizaciones: cotizacionesEnVivo } = useCotizacionesSignalR(obtenerToken)
 
   useEffect(() => {
-    getEntidades().then(setEntidades).catch(() => setEntidades([]))
+    let activo = true
+    getEntidades()
+      .then((lista) => {
+        if (activo) setEntidadesBase(Array.isArray(lista) ? lista : [])
+      })
+      .catch(() => {
+        if (activo) setEntidadesBase([])
+      })
+    return () => {
+      activo = false
+    }
   }, [])
+
+  const entidades = useMemo(() => {
+    if (!cotizacionesEnVivo || cotizacionesEnVivo.length === 0) return entidadesBase
+    if (entidadesBase.length === 0) return cotizacionesEnVivo
+
+    const actualizadas = [...entidadesBase]
+    for (const nueva of cotizacionesEnVivo) {
+      const codigoNuevo = nueva.codigo ?? nueva.codigo_entidad
+      const idx = actualizadas.findIndex(
+        (e) => (e.codigo ?? e.codigo_entidad) === codigoNuevo || (e.id && e.id === nueva.id),
+      )
+      if (idx >= 0) {
+        actualizadas[idx] = { ...actualizadas[idx], ...nueva }
+      } else {
+        actualizadas.push(nueva)
+      }
+    }
+    return actualizadas
+  }, [entidadesBase, cotizacionesEnVivo])
 
   if (entidades.length === 0) return <div className="ticker" aria-hidden="true" />
 

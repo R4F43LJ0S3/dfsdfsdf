@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { createChart, ColorType, CandlestickSeries, AreaSeries } from 'lightweight-charts';
 import { Trophy } from 'lucide-react';
-import { getEntidades, getOhlc, getRanking, getMetricas } from '../../services/api';
+import { getEntidades, getOhlc, getRanking, getMetricas, limpiarCacheApi } from '../../services/api';
 import { useTema } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { puedeVerPosicionRanking } from '../../constants/permisos';
@@ -21,7 +21,7 @@ const PALETTE = {
   textoGris: '#5A6375',
 };
 
-export const FinancialChart = ({ entidadNombre, ticker }) => {
+export const FinancialChart = () => {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,15 +31,16 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
   const [serieOhlc, setSerieOhlc] = useState([]);
   const [cargandoOhlc, setCargandoOhlc] = useState(false);
   const [errorOhlc, setErrorOhlc] = useState('');
-  // null = automático. El contrato de la API (docs/api/openapi-v1.json) avisa que en
-  // Diaria y Mensual cada punto trae apertura=máximo=mínimo=cierre, porque el CSV de
-  // origen es mensual: dibujadas como velas salen planas (una rayita sin cuerpo ni mecha).
-  // Solo Trimestral agrupa tres meses y tiene rango real, así que es el único periodo
-  // donde la vela aporta algo. Por eso el tipo por defecto depende del periodo.
-  const [tipoElegido, setTipoElegido] = useState(null);
+  const [intentoOhlc, setIntentoOhlc] = useState(0);
 
   const parametroUrl = searchParams.get('entidad');
   const parametroPeriodo = searchParams.get('periodo');
+
+  // Inicializa Línea para Diaria/Mensual (serie plana) y Velas para Trimestral;
+  // conserva la elección manual del usuario al cambiar entre periodos.
+  const [tipoGrafica, setTipoGrafica] = useState(() =>
+    parametroPeriodo?.toLowerCase() === 'trimestral' ? 'velas' : 'linea',
+  );
 
   // Deriva el periodo directamente de la URL (si es válido) o usa el predeterminado
   const periodo = useMemo(() => {
@@ -53,8 +54,6 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
     }
     return PERIODO_POR_DEFECTO;
   }, [parametroPeriodo]);
-
-  const tipoGrafica = tipoElegido ?? (periodo === 'trimestral' ? 'velas' : 'linea');
 
   const [hoverData, setHoverData] = useState(null);
 
@@ -119,7 +118,10 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
       })
       .catch((err) => {
         if (!activo) return;
-        console.warn('[Ficha] Error consultando ranking:', err?.message);
+        const status = err?.response?.status;
+        if (status !== 503 && status !== 403) {
+          console.warn('[Ficha] Error consultando ranking:', err?.message);
+        }
         setRankingDatos(null);
       });
 
@@ -129,53 +131,30 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
   }, [periodo, puedeVerPosicion]);
 
   const infoRanking = useMemo(() => {
-    if (!entidadActiva || !puedeVerPosicion) return null;
+    if (!entidadActiva || !puedeVerPosicion || !rankingDatos?.items?.length) return null;
     const entidadId = entidadActiva.id;
     const cod = String(entidadActiva.codigo ?? entidadActiva.codigo_entidad ?? '').toUpperCase();
     const nom = String(entidadActiva.nombre ?? entidadActiva.nombre_entidad ?? '').toUpperCase();
 
-    // 1. Buscar en el ranking oficial del servidor
-    if (rankingDatos?.items?.length) {
-      const encontrado = rankingDatos.items.find(
-        (it) =>
-          it.entidadId === entidadId ||
-          String(it.codigo ?? '').toUpperCase() === cod ||
-          String(it.entidad ?? '').toUpperCase() === nom,
-      );
-      if (encontrado && encontrado.posicion !== null && encontrado.posicion !== undefined) {
-        return {
-          puesto: encontrado.posicion,
-          total: rankingDatos.total ?? rankingDatos.items.length,
-          cambioPosicion: encontrado.cambioPosicion ?? 0,
-        };
-      }
-    }
-
-    // 2. Deducir de la lista de entidades ordenadas por IC si el ranking no estuviera disponible
-    if (listaEntidades.length > 0) {
-      const ordenadas = [...listaEntidades].sort((a, b) => {
-        const icA = Number(a.ic ?? a.indice_competitividad ?? 0);
-        const icB = Number(b.ic ?? b.indice_competitividad ?? 0);
-        return icB - icA;
-      });
-      const idx = ordenadas.findIndex(
-        (e) =>
-          e.id === entidadId ||
-          String(e.codigo ?? e.codigo_entidad ?? '').toUpperCase() === cod,
-      );
-      if (idx !== -1) {
-        return {
-          puesto: idx + 1,
-          total: ordenadas.length,
-          cambioPosicion: 0,
-        };
-      }
+    const encontrado = rankingDatos.items.find(
+      (it) =>
+        it.entidadId === entidadId ||
+        String(it.codigo ?? '').toUpperCase() === cod ||
+        String(it.entidad ?? '').toUpperCase() === nom,
+    );
+    if (encontrado && encontrado.posicion !== null && encontrado.posicion !== undefined) {
+      return {
+        puesto: encontrado.posicion,
+        total: rankingDatos.total ?? rankingDatos.items.length,
+        cambioPosicion: encontrado.cambioPosicion ?? 0,
+      };
     }
 
     return null;
-  }, [entidadActiva, rankingDatos, listaEntidades, puedeVerPosicion]);
+  }, [entidadActiva, rankingDatos, puedeVerPosicion]);
 
-  // Consulta métricas reales por entidad (HU-FE-03 CA 1 y CA 2)
+  // Consulta métricas reales por entidad (HU-FE-03 CA 1 y CA 2) sin filtrar por periodo OHLC,
+  // ya que en /api/v1/metricas cada indicador tiene su propia frecuencia intrínseca (Diaria, Mensual o Trimestral).
   const [metricasServidor, setMetricasServidor] = useState([]);
   const [cargandoMetricas, setCargandoMetricas] = useState(false);
   const [errorMetricas, setErrorMetricas] = useState('');
@@ -207,22 +186,11 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
       baseParams.sector = entidadActiva.sector;
     }
 
-    getMetricas({ ...baseParams, periodo })
-      .then(async (res) => {
+    getMetricas(baseParams)
+      .then((res) => {
         if (!activo) return;
         const lista = Array.isArray(res) ? res : res?.items ?? [];
-        const propias = filtrarDeEntidad(lista);
-
-        if (propias.length > 0) {
-          setMetricasServidor(propias);
-          return;
-        }
-
-        // Fallback automático de frecuencia si el backend solo tiene corte mensual consolidado
-        const resFallback = await getMetricas(baseParams);
-        if (!activo) return;
-        const listaFallback = Array.isArray(resFallback) ? resFallback : resFallback?.items ?? [];
-        setMetricasServidor(filtrarDeEntidad(listaFallback));
+        setMetricasServidor(filtrarDeEntidad(lista));
       })
       .catch((err) => {
         if (!activo) return;
@@ -237,7 +205,7 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
     return () => {
       activo = false;
     };
-  }, [periodo, entidadActiva]);
+  }, [entidadActiva]);
 
   const metricasEntidad = useMemo(() => {
     if (!entidadActiva || metricasServidor.length === 0) return [];
@@ -290,7 +258,7 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
     return () => {
       activo = false;
     };
-  }, [idConsulta, periodo]);
+  }, [idConsulta, periodo, intentoOhlc]);
 
   // Colores de la gráfica según el tema (claro u oscuro)
   const { tema } = useTema();
@@ -417,12 +385,17 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
     setSearchParams(params);
   };
 
+  const reintentarOhlc = () => {
+    limpiarCacheApi();
+    setErrorOhlc('');
+    setIntentoOhlc((n) => n + 1);
+  };
+
   const cargando = cargandoEntidades || cargandoOhlc;
-  const nombreMostrado = entidadActiva?.nombre ?? entidadActiva?.nombre_entidad ?? entidadNombre ?? (cargando ? 'Cargando…' : 'Sin entidad');
-  const codigoMostrado = entidadActiva?.codigo ?? entidadActiva?.codigo_entidad ?? ticker ?? '—';
+  const nombreMostrado = entidadActiva?.nombre ?? entidadActiva?.nombre_entidad ?? (cargando ? 'Cargando…' : 'Sin entidad');
+  const codigoMostrado = entidadActiva?.codigo ?? entidadActiva?.codigo_entidad ?? '—';
   const sectorMostrado = entidadActiva?.sector ?? '—';
 
-  // Si el servidor mandó el mismo valor en apertura/máximo/mínimo/cierre, no hay rango que dibujar.
   const serieEsPlana = useMemo(
     () => serieOhlc.length > 0 && serieOhlc.every((v) => v.high === v.low),
     [serieOhlc],
@@ -436,9 +409,12 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
   const simboloVar = variacionEntidad === null ? '–' : sube ? '▲' : baja ? '▼' : '–';
   const claseVariacion = baja ? 'baja' : !sube ? 'igual' : '';
 
-  const variacionVela = datoMostrar && datoMostrar.open
-    ? ((datoMostrar.close - datoMostrar.open) / datoMostrar.open) * 100
-    : null;
+  const variacionVela =
+    datoMostrar && Number.isFinite(datoMostrar.variacionPct)
+      ? datoMostrar.variacionPct
+      : datoMostrar && datoMostrar.open
+        ? ((datoMostrar.close - datoMostrar.open) / datoMostrar.open) * 100
+        : null;
   const subeVela = Number(variacionVela) > 0;
   const bajaVela = Number(variacionVela) < 0;
 
@@ -503,14 +479,14 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
               <div className="grafica-type-toggle" role="group" aria-label="Tipo de gráfica">
                 <button
                   type="button"
-                  onClick={() => setTipoElegido('velas')}
+                  onClick={() => setTipoGrafica('velas')}
                   className={`grafica-toggle-btn ${tipoGrafica === 'velas' ? 'active' : ''}`}
                 >
                   Velas
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTipoElegido('linea')}
+                  onClick={() => setTipoGrafica('linea')}
                   className={`grafica-toggle-btn ${tipoGrafica === 'linea' ? 'active' : ''}`}
                 >
                   Línea
@@ -533,61 +509,41 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
 
             {/* Lienzo de la Gráfica o Estados de Carga / Error */}
             {cargando && serieOhlc.length === 0 && (
-              <div
-                role="status"
-                style={{
-                  height: '380px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '8px',
-                  border: '1px dashed var(--color-border)',
-                  color: 'var(--color-text-muted)',
-                  fontSize: '14px',
-                }}
-              >
+              <div className="grafica-lienzo-estado" role="status">
                 Cargando serie histórica OHLC…
               </div>
             )}
 
-            {!cargando && !errorOhlc && serieEsPlana && tipoGrafica === 'velas' && (
-              <p className="grafica-aviso-plana" role="status">
-                En <strong>{nombrePeriodo(periodo)}</strong> el servidor envía un único valor por
-                punto (apertura = máximo = mínimo = cierre), así que las velas salen planas.
-                Para ver velas con cuerpo elige <strong>Trimestral</strong>, que agrupa tres meses.
-              </p>
+            {!cargando && errorOhlc && (
+              <div className="grafica-lienzo-error" role="alert">
+                <p>{errorOhlc}</p>
+                <button type="button" className="grafica-retry-btn" onClick={reintentarOhlc}>
+                  Reintentar
+                </button>
+              </div>
             )}
 
-            {!cargando && errorOhlc && (
-              <div
-                role="alert"
-                style={{
-                  height: '380px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '8px',
-                  border: '1px solid var(--rojo-bajada, #D9534F)',
-                  backgroundColor: 'rgba(217, 83, 79, 0.08)',
-                  color: 'var(--rojo-bajada, #D9534F)',
-                  padding: '24px',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                }}
-              >
-                {errorOhlc}
+            {!cargando && !errorOhlc && serieEsPlana && tipoGrafica === 'velas' && (
+              <div className="grafica-aviso-plana" role="status">
+                <span>
+                  Serie sin rango OHLC en {nombrePeriodo(periodo)} (apertura = cierre).
+                </span>
+                <button
+                  type="button"
+                  className="grafica-aviso-btn"
+                  onClick={() => {
+                    setTipoGrafica('velas');
+                    handlePeriodoChange('trimestral');
+                  }}
+                >
+                  Ver velas en Trimestral
+                </button>
               </div>
             )}
 
             <div
               ref={chartContainerRef}
-              style={{
-                width: '100%',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                display: serieOhlc.length > 0 ? 'block' : 'none',
-              }}
+              className={`grafica-lienzo ${serieOhlc.length > 0 ? '' : 'oculto'}`}
             />
 
             {/* Tira OHLC compacta continua (Data Ribbon) */}
@@ -644,5 +600,4 @@ export const FinancialChart = ({ entidadNombre, ticker }) => {
   );
 };
 
-export const GraficaEntidad = FinancialChart;
 export default FinancialChart;

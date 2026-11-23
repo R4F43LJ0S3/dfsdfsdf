@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { login as loginApi } from '../services/api'
+import { login as loginApi, limpiarCacheApi } from '../services/api'
 import { decodificarJwt, esTokenVigente, extraerRolJwt } from '../utils/jwt'
+import { normalizarNombreRol } from '../constants/roles'
 
 const AuthContext = createContext(null)
 
@@ -30,15 +31,13 @@ function leerSesionGuardada() {
       return { token: null, usuario: null }
     }
 
-    if (!usuarioParsed.rol) {
-      const rolJwt = extraerRolJwt(tokenGuardado)
-      if (rolJwt) {
-        usuarioParsed.rol = rolJwt
-      } else {
-        limpiarAlmacenamientoSesion()
-        return { token: null, usuario: null }
-      }
+    const rolJwt = extraerRolJwt(tokenGuardado)
+    const rolBruto = rolJwt || usuarioParsed.rol
+    if (!rolBruto) {
+      limpiarAlmacenamientoSesion()
+      return { token: null, usuario: null }
     }
+    usuarioParsed.rol = normalizarNombreRol(rolBruto)
 
     // Si en localStorage quedó una sesión antigua con mojibake ('Juan P?rez'), se fuerza reautenticación limpia UTF-8
     if (
@@ -71,8 +70,20 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     limpiarAlmacenamientoSesion()
+    limpiarCacheApi()
     setToken(null)
     setUsuario(null)
+  }, [])
+
+  const actualizarSesionUsuario = useCallback((cambios) => {
+    if (!cambios || typeof cambios !== 'object') return
+    limpiarCacheApi()
+    setUsuario((prev) => {
+      if (!prev) return prev
+      const actualizado = { ...prev, ...cambios }
+      localStorage.setItem('usuario', JSON.stringify(actualizado))
+      return actualizado
+    })
   }, [])
 
   // Verificar periódicamente o al ganar foco si el token expiró
@@ -96,11 +107,10 @@ export function AuthProvider({ children }) {
       throw new Error('La respuesta del servidor no contiene un token de sesión válido.')
     }
 
-    // Si el backend no envió el rol en el cuerpo JSON pero sí en el JWT, se rescata del token
+    // El claim del JWT firmado por el servidor tiene prioridad y se normaliza al catálogo canónico
     const rolJwt = extraerRolJwt(sesion.token)
-    if (rolJwt && !sesion.usuario.rol) {
-      sesion.usuario.rol = rolJwt
-    }
+    const rolVerificado = normalizarNombreRol(rolJwt || sesion.usuario.rol)
+    sesion.usuario.rol = rolVerificado
 
     // Comportamiento Fail-Closed (OWASP ASVS V4.1): rechazar sesión si no existe rol verificado
     if (!sesion.usuario.rol) {
@@ -121,7 +131,16 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ token, usuario, login, logout, estaAutenticado: Boolean(usuario && token) }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        usuario,
+        login,
+        logout,
+        actualizarSesionUsuario,
+        estaAutenticado: Boolean(usuario && token),
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

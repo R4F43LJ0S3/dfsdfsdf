@@ -2,6 +2,7 @@ import axios from 'axios'
 import { ENDPOINTS } from './endpoints'
 import { PERIODOS, PERIODO_POR_DEFECTO, DIMENSIONES_RANKING } from '../constants/periodos'
 import { aEntidad, aEntidades, aSesion, aSerieOhlc } from './adaptadores'
+import { puedeConsultarRanking } from '../constants/permisos'
 import { esTokenVigente } from '../utils/jwt'
 import { normalizarIdentificador, normalizarPassword } from '../utils/texto'
 
@@ -55,24 +56,30 @@ http.interceptors.response.use(
   },
 )
 
-// --- Arranque en frío de Render -------------------------------------------------
+// --- Arranque en frío y tolerancia a saturación de Render ------------------------
 
 // Render (plan gratuito) contesta 502/503/504 desde su router mientras la instancia
-// duerme, arranca o se está reiniciando. Esa respuesta NO viene de la API: es un fallo
-// temporal de infraestructura y hay que reintentarlo igual que una caída de red.
-// Antes se excluían todos los 5xx y por eso un 503 rompía la pantalla al primer intento.
+// despierta, se reinicia o atiende una ráfaga simultánea. Se reintenta con backoff.
+// Un 4xx (401, 403, 404, 422) nunca se reintenta.
 const ESTADOS_REINTENTABLES = [502, 503, 504]
 
+// Un 503 con cuerpo RFC 9457 (`data.code`, ej. "ranking.upstream_error") indica que la API .NET
+// ya está activa y reporta un fallo del microservicio upstream: no debe reintentarse 4 veces.
+const esErrorDominioServidor = (err) =>
+  Boolean(err?.response?.data && typeof err.response.data === 'object' && err.response.data.code)
+
 const esFalloDeArranque = (err) => {
+  if (err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError') {
+    return false
+  }
   if (err?.code === 'ECONNABORTED' || err?.code === 'ERR_NETWORK' || !err?.response) return true
+  if (esErrorDominioServidor(err)) return false
   return ESTADOS_REINTENTABLES.includes(err.response.status)
 }
 
 const esperar = (ms) => new Promise((ok) => setTimeout(ok, ms))
 
-// Reintenta con espera creciente (3 s, 6 s, 12 s) mientras la instancia de Render
-// despierta o se reinicia. Un 4xx (401, 403, 404...) nunca se reintenta: es definitivo.
-async function conReintentoDeArranque(peticion, intentos = 4) {
+export async function conReintentoDeArranque(peticion, intentos = 4) {
   let ultimoError
   for (let i = 0; i < intentos; i += 1) {
     try {
@@ -82,26 +89,25 @@ async function conReintentoDeArranque(peticion, intentos = 4) {
       if (!esFalloDeArranque(err) || i === intentos - 1) throw err
       const espera = 3000 * 2 ** i
       const motivo = err?.response ? `HTTP ${err.response.status}` : (err?.code ?? 'sin respuesta')
-      console.warn(`[API] El backend devolvió ${motivo} (intento ${i + 1}/${intentos}). Puede estar despertando o reiniciándose en Render; reintentando en ${espera / 1000} s...`)
+      console.warn(`[API] El backend devolvió ${motivo} (intento ${i + 1}/${intentos}). Reintentando en ${espera / 1000} s...`)
       await esperar(espera)
     }
   }
   throw ultimoError
 }
 
-// --- Deduplicación, caché corta y límite de concurrencia -------------------------
-
-// La instancia gratuita de Render atiende muy poca carga simultánea: cuando el front
-// le lanza una ráfaga de peticiones pesadas (el Comparador pide 5 rankings con
-// limit=200 a la vez) la instancia se satura y el router empieza a devolver 503.
-// Además había peticiones repetidas: el Tablero pedía GET /entidades tres veces
-// (getIndiceGeneral + getTop + getEntidades) y el Ticker una cuarta, todas idénticas.
+// --- Deduplicación, caché corta aislada por sesión y límite de concurrencia ------
 
 const MAX_SIMULTANEAS = 3
 const TTL_CACHE_MS = 15000
+const TTL_CIRCUITO_RANKING_MS = 60000
 
-const enVuelo = new Map()   // clave -> promesa compartida
-const cache = new Map()     // clave -> { expira, datos }
+const enVuelo = new Map()
+const cache = new Map()
+const rankingEnVuelo = new Map()
+let rankingCircuitoAbiertoHasta = 0
+let sondaRankingEnVuelo = null
+let ultimoErrorRanking = null
 
 let activas = 0
 const cola = []
@@ -112,7 +118,6 @@ function liberarHueco() {
   if (siguiente) siguiente()
 }
 
-// Deja pasar como mucho MAX_SIMULTANEAS peticiones a la vez; el resto espera turno.
 function tomarHueco() {
   if (activas < MAX_SIMULTANEAS) {
     activas += 1
@@ -126,19 +131,18 @@ function tomarHueco() {
   })
 }
 
-const claveDe = (url, params) => `${url}?${JSON.stringify(params ?? {}, Object.keys(params ?? {}).sort())}`
+// Incluye huella de sesión en la llave de caché para evitar fugas de datos entre distintos roles
+const claveDe = (url, params) => {
+  const huellaSesion = (localStorage.getItem('token') || 'anon').slice(-16)
+  return `${huellaSesion}:${url}?${JSON.stringify(params ?? {}, Object.keys(params ?? {}).sort())}`
+}
 
-/**
- * GET con reintento de arranque, deduplicación de peticiones idénticas en vuelo,
- * caché de 15 s y tope de peticiones simultáneas.
- */
 function obtener(url, config = {}) {
   const clave = claveDe(url, config.params)
 
   const guardado = cache.get(clave)
   if (guardado && guardado.expira > Date.now()) return Promise.resolve(guardado.datos)
 
-  // Si ya hay una petición idéntica viajando, se reutiliza en vez de lanzar otra.
   const yaVa = enVuelo.get(clave)
   if (yaVa) return yaVa
 
@@ -158,12 +162,14 @@ function obtener(url, config = {}) {
   return promesa
 }
 
-// Las escrituras (watchlist, aprobaciones) invalidan la caché para no leer datos viejos.
 export function limpiarCacheApi() {
   cache.clear()
+  rankingCircuitoAbiertoHasta = 0
+  ultimoErrorRanking = null
 }
 
-// Normaliza el parámetro periodo ('Diaria' | 'Mensual' | 'Trimestral') exigido por GET /api/v1/entidades/{id}/ohlc
+// Normaliza el parámetro periodo ('Diaria' | 'Mensual' | 'Trimestral') exigido por
+// GET /api/v1/entidades/{id}/ohlc, GET /api/v1/ranking y GET /api/v1/metricas (docs/api/openapi-v1.json)
 function normalizarPeriodoOhlc(periodo) {
   const p = String(periodo ?? 'Mensual').trim().toLowerCase()
   if (p === 'diario' || p === 'diaria') return 'Diaria'
@@ -171,21 +177,6 @@ function normalizarPeriodoOhlc(periodo) {
   return 'Mensual'
 }
 
-// Normaliza el parámetro periodo ('diario' | 'mensual' | 'trimestral') para /ranking y /metricas
-function normalizarPeriodoMinusculas(periodo) {
-  if (!periodo) return undefined
-  const p = String(periodo).trim().toLowerCase()
-  if (p === 'diaria' || p === 'diario') return 'diario'
-  if (p === 'mensual') return 'mensual'
-  if (p === 'trimestral') return 'trimestral'
-  return p
-}
-
-/**
- * Despierta la instancia de Render antes de que el usuario intente iniciar sesión.
- * Se llama una sola vez al arrancar la app (src/main.jsx).
- * Nunca lanza: si falla, la app sigue y el error aparecerá en la petición real.
- */
 export async function despertarBackend() {
   const inicio = Date.now()
   try {
@@ -199,10 +190,6 @@ export async function despertarBackend() {
   }
 }
 
-// Autentica contra el Backend .NET (POST /api/v1/auth/login), devolviendo la sesión normalizada
-// Contrato docs/api/openapi-v1.json:
-// Request: { usuario: string, password: string }
-// Response 200: { token: string, expiraEn: int32, usuario: { id: uuid, nombre: string, rol: string } }
 export async function login(identificador, password) {
   const usuarioNormalizado = normalizarIdentificador(identificador)
   const passwordNormalizado = normalizarPassword(password)
@@ -211,6 +198,7 @@ export async function login(identificador, password) {
     http.post(ENDPOINTS.login, { usuario: usuarioNormalizado, password: passwordNormalizado }),
   )
 
+  limpiarCacheApi()
   const sesion = aSesion(res.data)
   if (!sesion || !sesion.token) {
     throw new Error('Respuesta de autenticación inválida del servidor.')
@@ -219,7 +207,6 @@ export async function login(identificador, password) {
 }
 
 // GET /api/v1/entidades
-// Parámetros admitidos en docs/api/openapi-v1.json: sector, page (>=1), size (1..100), sort, dir
 export async function getEntidades(filtros = {}) {
   const params = { ...filtros }
   if (params.size !== undefined) {
@@ -230,13 +217,12 @@ export async function getEntidades(filtros = {}) {
 }
 
 // GET /api/v1/entidades/{id}
-// Devuelve EntidadDto (id: uuid, codigo, nombre, sector, ic, variacion, variacionPct)
 export async function getEntidad(id) {
   const res = await obtener(ENDPOINTS.entidad(id))
   return aEntidad(res.data)
 }
 
-// Calcula el resumen agregado del Índice General a partir de los registros reales de GET /api/v1/entidades
+// Calcula el resumen agregado del Índice General a partir de GET /api/v1/entidades
 export async function getIndiceGeneral() {
   const lista = await getEntidades()
   const validas = lista.filter((e) => Number.isFinite(e.ic ?? e.indice_competitividad))
@@ -244,12 +230,13 @@ export async function getIndiceGeneral() {
   const prom = (campo, alt) => validas.reduce((s, e) => s + (Number(e[campo] ?? (alt ? e[alt] : 0)) || 0), 0) / validas.length
   const valor = prom('ic', 'indice_competitividad')
   const puntos = prom('variacion')
-  const anterior = valor - puntos
+  const variacion = prom('variacionPct', 'variacion_porcentual')
   return {
     fecha: new Date().toISOString().slice(0, 10),
     valor,
     puntos,
-    variacion: anterior ? (puntos / anterior) * 100 : 0,
+    variacion,
+    totalEntidades: validas.length,
   }
 }
 
@@ -261,7 +248,6 @@ export async function getTop() {
 }
 
 // GET /api/v1/entidades/{id}/ohlc
-// Parámetros en docs/api/openapi-v1.json: id (uuid en ruta), periodo ('Diaria' | 'Mensual' | 'Trimestral')
 export async function getOhlc(idEntidad, periodo = PERIODO_POR_DEFECTO) {
   const periodoOhlc = normalizarPeriodoOhlc(periodo)
   const res = await obtener(ENDPOINTS.ohlc(idEntidad), { params: { periodo: periodoOhlc } })
@@ -269,14 +255,10 @@ export async function getOhlc(idEntidad, periodo = PERIODO_POR_DEFECTO) {
 }
 
 // GET /api/v1/metricas
-// Parámetros admitidos en docs/api/openapi-v1.json:
-// sector, periodo ('diario'|'mensual'|'trimestral'), fecha ('yyyy-MM-dd'),
-// dimension ('Rentabilidad'|'Liquidez'|'Solvencia'|'Crecimiento'|'Mercado'|'Trazabilidad'),
-// page (>=1), size (1..100, default 100), sort, dir
 export async function getMetricas(filtros = {}) {
   const params = { ...filtros }
   if (params.periodo) {
-    params.periodo = normalizarPeriodoMinusculas(params.periodo)
+    params.periodo = normalizarPeriodoOhlc(params.periodo)
   }
   if (params.size !== undefined) {
     params.size = Math.min(100, Math.max(1, Number(params.size) || 100))
@@ -285,7 +267,6 @@ export async function getMetricas(filtros = {}) {
   return res.data
 }
 
-// Deriva opciones únicas ordenadas alfabéticamente a partir de los endpoints reales de la API
 async function catalogoDerivado(nombre, obtenerValores) {
   try {
     const valores = [...new Set((await obtenerValores()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'))
@@ -299,32 +280,109 @@ async function catalogoDerivado(nombre, obtenerValores) {
   }
 }
 
-// GET /api/v1/ranking
-// Parámetros admitidos en docs/api/openapi-v1.json:
-// sector, dimension ('Rentabilidad'|'Liquidez'|'Solvencia'|'Crecimiento'),
-// periodo ('diario'|'mensual'|'trimestral'), orden ('posicion'|'entidad'|'sector'|'ic'|'variacionPct'),
-// dir ('asc'|'desc'), limit (1..200, default 50), offset (>=0, default 0)
+function leerUsuarioSesion() {
+  try {
+    return JSON.parse(localStorage.getItem('usuario') || 'null')
+  } catch {
+    return null
+  }
+}
+
+function crearErrorRankingNoDisponible() {
+  const err = new Error('El microservicio de ranking no está disponible.')
+  err.response = {
+    status: 503,
+    data: {
+      status: 503,
+      title: 'Servicio no disponible',
+      detail: 'El microservicio de ranking no está disponible.',
+      code: 'ranking.upstream_error',
+    },
+  }
+  return err
+}
+
+// GET /api/v1/ranking (Modo estricto con sonda única, Circuit Breaker de 60 s y caché por sesión/filtros)
 export async function getRanking(filtros = {}) {
-  const periodo = normalizarPeriodoMinusculas(filtros.periodo)
+  const usuarioActual = leerUsuarioSesion()
+  if (usuarioActual && !puedeConsultarRanking(usuarioActual)) {
+    const err = new Error('Tu rol actual no tiene permisos para consultar el ranking.')
+    err.response = {
+      status: 403,
+      data: { status: 403, detail: 'Tu rol actual no tiene permisos para consultar el ranking.' },
+    }
+    throw err
+  }
+
+  const periodo = filtros.periodo ? normalizarPeriodoOhlc(filtros.periodo) : undefined
   const params = { ...filtros, ...(periodo && { periodo }) }
   if (params.limit !== undefined) {
     params.limit = Math.min(200, Math.max(1, Number(params.limit) || 50))
   }
-  const res = await obtener(ENDPOINTS.ranking, { params })
-  return res.data
+
+  const claveResuelta = claveDe('__ranking_resuelto__', params)
+  const guardado = cache.get(claveResuelta)
+  if (guardado && guardado.expira > Date.now()) return guardado.datos
+
+  const yaEnCurso = rankingEnVuelo.get(claveResuelta)
+  if (yaEnCurso) return yaEnCurso
+
+  const promesa = (async () => {
+    try {
+      // Circuito abierto: fallar de inmediato con el error del servidor sin generar tráfico 503 adicional
+      if (Date.now() < rankingCircuitoAbiertoHasta) {
+        throw ultimoErrorRanking ?? crearErrorRankingNoDisponible()
+      }
+
+      // Si otra llamada ya está probando el endpoint, esperar su resultado antes de emitir otra petición
+      if (sondaRankingEnVuelo) {
+        await sondaRankingEnVuelo.catch(() => {})
+        if (Date.now() < rankingCircuitoAbiertoHasta) {
+          throw ultimoErrorRanking ?? crearErrorRankingNoDisponible()
+        }
+      }
+
+      const peticionSonda = obtener(ENDPOINTS.ranking, { params })
+      if (!sondaRankingEnVuelo) {
+        sondaRankingEnVuelo = peticionSonda
+      }
+
+      try {
+        const res = await peticionSonda
+        rankingCircuitoAbiertoHasta = 0
+        ultimoErrorRanking = null
+        cache.set(claveResuelta, { expira: Date.now() + TTL_CACHE_MS, datos: res.data })
+        return res.data
+      } catch (err) {
+        const status = err?.response?.status
+        // 401 y 403 jamás abren circuito: se propagan intactos para control RBAC
+        if (status === 401 || status === 403) throw err
+
+        rankingCircuitoAbiertoHasta = Date.now() + TTL_CIRCUITO_RANKING_MS
+        ultimoErrorRanking = err
+        throw err
+      } finally {
+        if (sondaRankingEnVuelo === peticionSonda) {
+          sondaRankingEnVuelo = null
+        }
+      }
+    } finally {
+      rankingEnVuelo.delete(claveResuelta)
+    }
+  })()
+
+  rankingEnVuelo.set(claveResuelta, promesa)
+  return promesa
 }
 
-// Sectores: valores únicos del campo 'sector' en GET /api/v1/entidades
 export async function getSectores() {
   return catalogoDerivado('sectores', async () => (await getEntidades({ size: 100 })).map((e) => e.sector))
 }
 
-// Dimensiones: /api/v1/ranking admite exclusivamente las 4 dimensiones oficiales de DIMENSIONES_RANKING
 export async function getDimensiones() {
   return Promise.resolve(DIMENSIONES_RANKING)
 }
 
-// Periodos: opciones documentadas en docs/api/openapi-v1.json
 export async function getPeriodos() {
   return PERIODOS
 }
@@ -349,17 +407,15 @@ export async function quitarDeWatchlist(idEntidad) {
   return res.data
 }
 
-// --- Aprobaciones de Lotes (HU-FE-08 / HU-BE-08) ---
+// --- Aprobaciones de Lotes (HU-FE-08 / HU-BE-05) ---
 
 // GET /api/v1/aprobaciones
-// Roles admitidos: Administrador, Data Steward, Analista financiero, Auditor
 export async function getLotesPendientes() {
   const res = await obtener(ENDPOINTS.aprobaciones)
   return Array.isArray(res.data) ? res.data : []
 }
 
 // POST /api/v1/aprobaciones/{idLote}/aprobar
-// Rol admitido: Analista financiero (segregación de funciones: no puede aprobar su propio lote)
 export async function aprobarLote(idLote) {
   const res = await conReintentoDeArranque(() => http.post(ENDPOINTS.aprobarLote(idLote)))
   limpiarCacheApi()
@@ -367,7 +423,6 @@ export async function aprobarLote(idLote) {
 }
 
 // POST /api/v1/aprobaciones/{idLote}/rechazar
-// Rol admitido: Analista financiero. Cuerpo: { comentario: string } (obligatorio, máx 500 caracteres)
 export async function rechazarLote(idLote, comentario) {
   const res = await conReintentoDeArranque(() =>
     http.post(ENDPOINTS.rechazarLote(idLote), { comentario: String(comentario ?? '').trim() }),

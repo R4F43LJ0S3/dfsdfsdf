@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Login from '../pages/Login'
 import Layout from '../components/layout/Layout'
@@ -6,7 +6,7 @@ import ProtectedRoute from './ProtectedRoute'
 import {
   ROLES_CON_ACCESO_RANKING,
   ROLES_CON_ACCESO_COMPARADOR,
-  ROLES_LECTURA_PARAMETROS,
+  ROLES_GESTION_USUARIOS,
   ROLES_CONSULTA_APROBACIONES,
 } from '../constants/permisos'
 
@@ -21,49 +21,40 @@ const Administracion = lazy(() => import('../pages/Administracion'))
 
 export default function AppRouter() {
   return (
-    <Suspense fallback={<p style={{ padding: 24 }}>Cargando…</p>}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
+    <Routes>
+      <Route path="/login" element={<Login />} />
 
-        {/* Rutas generales para todos los usuarios autenticados (Catálogo entidades, OHLC, Métricas, Diccionario) */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/grafica" element={<FinancialChart />} />
-            <Route path="/diccionario" element={<Diccionario />} />
-          </Route>
-        </Route>
+      {/* Layout y Ticker únicos para todas las rutas autenticadas (evita reconexiones SignalR al navegar) */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          {/* Rutas generales para todos los usuarios autenticados */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/grafica" element={<FinancialChart />} />
+          <Route path="/diccionario" element={<Diccionario />} />
 
-        {/* HU-FE-07 Matriz de Permisos: Ranking (Usuario móvil tiene SA -> bloqueado) */}
-        <Route element={<ProtectedRoute rolesPermitidos={ROLES_CON_ACCESO_RANKING} />}>
-          <Route element={<Layout />}>
+          {/* HU-FE-07 Matriz de Permisos: Ranking (Usuario móvil tiene SA -> bloqueado) */}
+          <Route element={<ProtectedRoute rolesPermitidos={ROLES_CON_ACCESO_RANKING} />}>
             <Route path="/ranking" element={<Ranking />} />
           </Route>
-        </Route>
 
-        {/* HU-FE-07 Matriz de Permisos: Comparador (requiere acceso al ranking) */}
-        <Route element={<ProtectedRoute rolesPermitidos={ROLES_CON_ACCESO_COMPARADOR} />}>
-          <Route element={<Layout />}>
+          {/* HU-FE-07 Matriz de Permisos: Comparador (requiere acceso al ranking) */}
+          <Route element={<ProtectedRoute rolesPermitidos={ROLES_CON_ACCESO_COMPARADOR} />}>
             <Route path="/comparar" element={<Comparador />} />
           </Route>
-        </Route>
 
-        {/* HU-FE-08 Bandeja de Aprobación por Lotes (Administrador, Data Steward, Analista financiero, Auditor) */}
-        <Route element={<ProtectedRoute rolesPermitidos={ROLES_CONSULTA_APROBACIONES} />}>
-          <Route element={<Layout />}>
+          {/* HU-FE-08 Bandeja de Aprobación por Lotes (Administrador, Data Steward, Analista financiero, Auditor) */}
+          <Route element={<ProtectedRoute rolesPermitidos={ROLES_CONSULTA_APROBACIONES} />}>
             <Route path="/aprobaciones" element={<BandejaAprobaciones />} />
           </Route>
-        </Route>
 
-        {/* HU-FE-07 Matriz de Permisos: Administración y Parámetros (Administrador, Analista, Auditor) */}
-        <Route element={<ProtectedRoute rolesPermitidos={ROLES_LECTURA_PARAMETROS} />}>
-          <Route element={<Layout />}>
+          {/* HU-FE-07 CA 2: Solo el Administrador puede entrar al módulo de Administración */}
+          <Route element={<ProtectedRoute rolesPermitidos={ROLES_GESTION_USUARIOS} />}>
             <Route path="/administracion" element={<Administracion />} />
           </Route>
         </Route>
+      </Route>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Suspense>
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   )
 }

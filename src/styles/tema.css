@@ -39,36 +39,6 @@ html[data-theme='dark'] {
   --borde-input: #4A6B93;
 }
 
-/* Tablero: Banner CTA en modo oscuro */
-html[data-theme='dark'] .cta {
-  background: linear-gradient(135deg, #151D33 0%, #1C2947 100%);
-  border-color: #2D3958;
-  border-left-color: #24A460;
-}
-html[data-theme='dark'] .cta-boton {
-  background: #24A460;
-  color: #0E1424;
-}
-html[data-theme='dark'] .cta-boton:hover {
-  background: #2EBD70;
-  color: #0E1424;
-}
-
-/* Gráfica */
-html[data-theme='dark'] .grafica-card-container,
-html[data-theme='dark'] .grafica-stat-card,
-html[data-theme='dark'] .grafica-select-entidad { background-color: #151D33; }
-html[data-theme='dark'] .grafica-title,
-html[data-theme='dark'] .grafica-main-value,
-html[data-theme='dark'] .grafica-stat-value,
-html[data-theme='dark'] .grafica-select-entidad { color: #E8EDF7; }
-html[data-theme='dark'] .grafica-badge-finanzas { background-color: #1C2947; color: #8DB8E8; }
-html[data-theme='dark'] .grafica-type-toggle { background-color: #0E1424; }
-html[data-theme='dark'] .grafica-period-btn { background-color: #1C2947; color: #E8EDF7; }
-html[data-theme='dark'] .grafica-toggle-btn { color: #E8EDF7; }
-html[data-theme='dark'] .grafica-toggle-btn.active,
-html[data-theme='dark'] .grafica-period-btn.active { background-color: #264E7A; color: #FFFFFF; }
-
 /* Logo de barra de navegación: versión clara en modo claro, versión para fondo oscuro en modo oscuro */
 .logo-oscuro { display: none; }
 html[data-theme='dark'] .logo-claro { display: none; }

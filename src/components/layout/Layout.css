@@ -7,13 +7,24 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: 20px;
   height: 52px;
   min-height: 52px;
-  padding: 0 clamp(14px, 2vw, 28px);
+  padding: 0;
   background: var(--superficie, #FFFFFF);
   border-bottom: 1px solid var(--color-border);
   position: relative;
+  box-sizing: border-box;
+}
+
+.nav-inner {
+  max-width: 1440px;
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(12px, 2vw, 24px);
+  display: flex;
+  align-items: center;
+  gap: 20px;
   box-sizing: border-box;
 }
 
@@ -44,7 +55,7 @@ html[data-theme='dark'] .nav {
 }
 
 .nav-links a {
-  height: 32px;
+  height: 34px;
   padding: 0 12px;
   border-radius: 6px;
   font-size: 13px;
@@ -163,6 +174,95 @@ html[data-theme='dark'] .nav-salir {
   box-sizing: border-box;
 }
 
+/* Estado de carga lazy y tarjeta de acceso restringido dentro de Layout */
+.estado-carga-ruta {
+  padding: 28px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--superficie, #FFFFFF);
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.acceso-restringido-card {
+  max-width: 520px;
+  margin: 24px auto;
+  padding: 24px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--superficie, #FFFFFF);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.acceso-restringido-icono {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--color-bearish-bg);
+  border: 1px solid var(--color-bearish-border);
+  color: var(--color-bearish);
+  display: grid;
+  place-items: center;
+}
+
+.acceso-restringido-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-on-light);
+}
+
+.acceso-restringido-card p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.acceso-restringido-btn {
+  margin-top: 4px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background: var(--color-azul-acero);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.acceso-restringido-btn:hover {
+  background: var(--color-azul-acero-hover);
+  color: #FFFFFF;
+}
+
+html[data-theme='dark'] .estado-carga-ruta,
+html[data-theme='dark'] .acceso-restringido-card {
+  background: var(--superficie, #151D33);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .acceso-restringido-btn {
+  background: #264E7A;
+  color: #FFFFFF;
+}
+
+html[data-theme='dark'] .acceso-restringido-btn:hover {
+  background: #1E3D60;
+}
+
 /* ==========================================================================
    Modo Móvil y Tablet (<= 768px): Header en 1 sola fila de 48px + Side Drawer
    ========================================================================== */
@@ -170,6 +270,10 @@ html[data-theme='dark'] .nav-salir {
   .nav {
     height: 48px;
     min-height: 48px;
+    padding: 0;
+  }
+
+  .nav-inner {
     padding: 0 14px;
     justify-content: space-between;
     flex-wrap: nowrap;

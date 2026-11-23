@@ -15,7 +15,7 @@ import UsuarioFormulario from './UsuarioFormulario'
 
 // HU-FE-07 CA 1: crear, editar y desactivar usuarios con sus roles
 // Rutas reales del servidor (todas exigen rol Administrador):
-//   GET    /api/v1/usuarios              lista (solo los activos)
+//   GET    /api/v1/usuarios              lista (usuarios activos)
 //   POST   /api/v1/usuarios/registrar    crear
 //   PUT    /api/v1/usuarios/{id}         editar
 //   DELETE /api/v1/usuarios/{id}         baja lógica -> estado 'inactivo'
@@ -26,7 +26,6 @@ const ETIQUETA_ESTADO = {
   [ESTADOS_USUARIO.BLOQUEADO]: 'Bloqueado',
 }
 
-// El servidor responde estos casos con un código propio; se traducen a algo entendible
 function mensajeDeBaja(err, respaldo) {
   const codigo = String(err?.response?.data?.code ?? err?.response?.data?.detail ?? '')
   if (err?.response?.status === 409 || codigo.includes('ultimo.administrador')) {
@@ -39,49 +38,83 @@ function mensajeDeBaja(err, respaldo) {
 }
 
 export default function UsuariosAdmin() {
-  const { usuario: sesion } = useAuth()
+  const { usuario: sesion, actualizarSesionUsuario, logout } = useAuth()
   const [usuarios, setUsuarios] = useState(null)
   const [errorCarga, setErrorCarga] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState('')
-  const [formulario, setFormulario] = useState(null) // null = cerrado, {} = nuevo, {usuario} = editar
-  const [confirmar, setConfirmar] = useState(null)   // usuario que se va a desactivar
+  const [formulario, setFormulario] = useState(null)
+  const [confirmar, setConfirmar] = useState(null)
   const [procesando, setProcesando] = useState(false)
-  const [aviso, setAviso] = useState(null)           // { tipo: 'ok' | 'error', texto }
+  const [aviso, setAviso] = useState(null)
 
-  // Pide la lista al servicio y la pone en pantalla
-  const cargar = () =>
-    listarUsuarios()
+  const esUnoMismo = (u) =>
+    ((sesion?.idUsuario ?? sesion?.id) && (sesion.idUsuario ?? sesion.id) === u.id) ||
+    (sesion?.email && u.email && sesion.email.toLowerCase() === u.email.toLowerCase())
+
+  const sincronizarSesionPropia = (lista) => {
+    if (!Array.isArray(lista) || !sesion) return
+    const propio = lista.find((u) =>
+      ((sesion?.idUsuario ?? sesion?.id) && (sesion.idUsuario ?? sesion.id) === u.id) ||
+      (sesion?.email && u.email && sesion.email.toLowerCase() === u.email.toLowerCase()),
+    )
+    if (!propio) return
+    if (propio.estado && propio.estado !== ESTADOS_USUARIO.ACTIVO) {
+      logout()
+      return
+    }
+    const nuevoRol = propio.rol || sesion.rol
+    const nuevoNombre = propio.nombreCompleto || sesion.nombre
+    if (
+      nuevoRol !== sesion.rol ||
+      nuevoNombre !== sesion.nombre ||
+      propio.email !== sesion.email
+    ) {
+      actualizarSesionUsuario({
+        rol: nuevoRol,
+        nombre: nuevoNombre,
+        nombreCompleto: nuevoNombre,
+        email: propio.email || sesion.email,
+      })
+    }
+  }
+
+  const cargar = () => {
+    setErrorCarga('')
+    return listarUsuarios()
       .then((lista) => {
         setErrorCarga('')
         setUsuarios(lista)
+        sincronizarSesionPropia(lista)
       })
       .catch((err) => {
         setErrorCarga(extraerMensajeError(err, 'No se pudo cargar la lista de usuarios.'))
         setUsuarios([])
       })
+  }
 
-  // Carga inicial al abrir la pestaña
   useEffect(() => {
     let vigente = true
     listarUsuarios()
-      .then((lista) => vigente && setUsuarios(lista))
+      .then((lista) => {
+        if (!vigente) return
+        setUsuarios(lista)
+        sincronizarSesionPropia(lista)
+      })
       .catch((err) => {
         if (!vigente) return
         setErrorCarga(extraerMensajeError(err, 'No se pudo cargar la lista de usuarios.'))
         setUsuarios([])
       })
     return () => { vigente = false }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // El mensaje verde o rojo se quita solo a los 5 segundos
   useEffect(() => {
     if (!aviso) return undefined
     const t = setTimeout(() => setAviso(null), 5000)
     return () => clearTimeout(t)
   }, [aviso])
 
-  // Con Escape se cierra la ventana de confirmar
   useEffect(() => {
     if (!confirmar) return undefined
     const alPresionar = (e) => {
@@ -91,7 +124,6 @@ export default function UsuariosAdmin() {
     return () => window.removeEventListener('keydown', alPresionar)
   }, [confirmar, procesando])
 
-  // Los ids de rol verdaderos salen de los propios usuarios; el catálogo local completa el resto
   const roles = useMemo(() => catalogoRolesDesde(usuarios ?? []), [usuarios])
 
   const visibles = useMemo(() => {
@@ -103,15 +135,24 @@ export default function UsuariosAdmin() {
       .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es'))
   }, [usuarios, busqueda, filtroRol])
 
-  // El administrador no se puede desactivar a sí mismo (se quedaría sin acceso)
-  const esUnoMismo = (u) =>
-    (sesion?.idUsuario && sesion.idUsuario === u.id) ||
-    (sesion?.email && u.email && sesion.email.toLowerCase() === u.email.toLowerCase())
-
   const guardar = async (datos) => {
     try {
       if (formulario?.usuario) {
+        const editandoPropio = esUnoMismo(formulario.usuario)
+        if (editandoPropio && formulario.usuario.idRol && datos.idRol !== formulario.usuario.idRol) {
+          throw { response: { status: 422, data: { detail: 'No puedes quitarte tu propio rol de Administrador.' } } }
+        }
         await editarUsuario(formulario.usuario.id, datos)
+        if (editandoPropio) {
+          const nombreNuevo = `${datos.primerNombre ?? ''} ${datos.primerApellido ?? ''}`.trim()
+          const rolElegido = roles.find((r) => r.id === datos.idRol)?.nombre ?? formulario.usuario.rol
+          actualizarSesionUsuario({
+            nombre: nombreNuevo || sesion?.nombre,
+            nombreCompleto: nombreNuevo || sesion?.nombreCompleto,
+            email: String(datos.email ?? sesion?.email ?? '').trim().toLowerCase(),
+            rol: rolElegido,
+          })
+        }
         setAviso({ tipo: 'ok', texto: `Se actualizó a ${datos.primerNombre} ${datos.primerApellido}.` })
       } else {
         const id = await crearUsuario(datos)
@@ -123,12 +164,11 @@ export default function UsuariosAdmin() {
       setFormulario(null)
       await cargar()
     } catch (err) {
-      // El formulario muestra este mensaje sin cerrarse
       const estado = err?.response?.status
       const codigo = String(err?.response?.data?.code ?? err?.response?.data?.detail ?? '')
       let mensaje
       if (estado === 409) mensaje = 'Ya existe otro usuario con ese correo.'
-      else if (codigo.includes('rol.invalido')) mensaje = 'El rol elegido no existe en la base de datos. Avisa a Backend para confirmar los ids de seguridad.roles.'
+      else if (codigo.includes('rol.invalido')) mensaje = 'El rol elegido no tiene un UUID registrado en seguridad.roles.'
       else mensaje = extraerMensajeError(err, 'No se pudo guardar el usuario.')
       throw { mensaje }
     }
@@ -154,11 +194,11 @@ export default function UsuariosAdmin() {
   return (
     <section aria-labelledby="adm-usuarios-titulo" className="adm-seccion">
       <div className="adm-seccion-cabecera">
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <h2 id="adm-usuarios-titulo">Usuarios</h2>
-          <p className="adm-texto-suave">
-            {usuarios ? `${usuarios.length} usuarios · ${activos} activos` : 'Cargando…'}
-          </p>
+          <span className="adm-rol mono-num">
+            {usuarios ? `${usuarios.length} registrados · ${activos} activos` : 'Cargando…'}
+          </span>
         </div>
         <button
           type="button"
@@ -200,7 +240,14 @@ export default function UsuariosAdmin() {
       </div>
 
       <div className="adm-tarjeta adm-tabla-tarjeta">
-        {errorCarga && <p className="adm-alerta adm-alerta-error adm-margen" role="alert">{errorCarga}</p>}
+        {errorCarga && (
+          <div className="adm-alerta adm-alerta-error adm-margen adm-error-barra" role="alert">
+            <span>{errorCarga}</span>
+            <button type="button" className="adm-btn-tabla" onClick={cargar}>
+              Reintentar
+            </button>
+          </div>
+        )}
         {!usuarios ? (
           <p className="adm-estado">Cargando usuarios…</p>
         ) : visibles.length === 0 ? (
@@ -268,12 +315,18 @@ export default function UsuariosAdmin() {
             </table>
           </div>
         )}
+        {usuarios && usuarios.length > 0 && (
+          <p className="adm-resumen mono-num">
+            Mostrando {visibles.length} de {usuarios.length} usuarios
+          </p>
+        )}
       </div>
 
       {formulario && (
         <UsuarioFormulario
           usuario={formulario.usuario}
           roles={roles}
+          esPropioUsuario={Boolean(formulario.usuario && esUnoMismo(formulario.usuario))}
           onGuardar={guardar}
           onCerrar={() => setFormulario(null)}
         />
@@ -284,8 +337,7 @@ export default function UsuariosAdmin() {
           <div className="adm-modal adm-modal-chico" role="alertdialog" aria-modal="true" aria-labelledby="adm-conf-titulo" aria-describedby="adm-conf-texto">
             <h2 id="adm-conf-titulo">¿Desactivar a {confirmar.nombreCompleto}?</h2>
             <p id="adm-conf-texto" className="adm-texto-suave">
-              No podrá iniciar sesión y saldrá de esta lista. Sus datos, reglas y bitácora se conservan,
-              pero volver a activarlo se hace desde la base de datos.
+              El usuario pasará a estado inactivo y no podrá iniciar sesión. Su historial y bitácora se conservan.
             </p>
             <div className="adm-modal-acciones">
               <button type="button" className="adm-btn adm-btn-secundario" onClick={() => setConfirmar(null)} disabled={procesando} autoFocus>

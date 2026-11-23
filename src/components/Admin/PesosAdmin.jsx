@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Save, RotateCcw } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { puedeGestionarParametros } from '../../constants/permisos'
-import { obtenerPesos, guardarPesos, RUTAS_ESPERADAS } from '../../services/adminService'
-import RutaPendiente from './RutaPendiente'
+import { obtenerPesos, guardarPesos } from '../../services/adminService'
 import { extraerMensajeError } from '../../services/authService'
 import { PESOS, validarPeso, validarPesos, sumarPesos } from '../../constants/validaciones'
 
@@ -23,25 +22,45 @@ export default function PesosAdmin() {
   const [pesos, setPesos] = useState(null)
   const [motivo, setMotivo] = useState('Actualización de ponderaciones del IC')
   const [errorCarga, setErrorCarga] = useState('')
-  const [pendiente, setPendiente] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [aviso, setAviso] = useState(null)
 
-  useEffect(() => {
+  const cargarPesos = () => {
+    setErrorCarga('')
+    setPesos(null)
     obtenerPesos()
       .then((datos) => {
         setOriginal(datos)
         setPesos(datos.map((p) => ({ ...p, peso: String(p.peso) })))
       })
       .catch((err) => {
-        if (err?.pendiente) {
-          setPendiente(true)
-        } else if (err?.response?.status === 403) {
+        if (err?.response?.status === 403) {
           setErrorCarga('Tu perfil actual no cuenta con autorización en el servidor para consultar esta configuración.')
         } else {
           setErrorCarga(extraerMensajeError(err, 'No se pudieron cargar los pesos del IC.'))
         }
       })
+  }
+
+  useEffect(() => {
+    let vigente = true
+    obtenerPesos()
+      .then((datos) => {
+        if (!vigente) return
+        setOriginal(datos)
+        setPesos(datos.map((p) => ({ ...p, peso: String(p.peso) })))
+      })
+      .catch((err) => {
+        if (!vigente) return
+        if (err?.response?.status === 403) {
+          setErrorCarga('Tu perfil actual no cuenta con autorización en el servidor para consultar esta configuración.')
+        } else {
+          setErrorCarga(extraerMensajeError(err, 'No se pudieron cargar los pesos del IC.'))
+        }
+      })
+    return () => {
+      vigente = false
+    }
   }, [])
 
   useEffect(() => {
@@ -93,20 +112,16 @@ export default function PesosAdmin() {
     }
   }
 
-  if (pendiente) {
+  if (errorCarga) {
     return (
-      <section className="adm-seccion" aria-labelledby="adm-pesos-titulo">
-        <h2 id="adm-pesos-titulo" className="adm-subtitulo">Pesos del índice de competitividad</h2>
-        <div className="adm-tarjeta">
-          <RutaPendiente
-            texto="Los pesos se leen y se guardan en el servidor mediante las rutas:"
-            rutas={[RUTAS_ESPERADAS.pesosDimensiones]}
-          />
-        </div>
-      </section>
+      <div className="adm-alerta adm-alerta-error adm-error-barra" role="alert">
+        <span>{errorCarga}</span>
+        <button type="button" className="adm-btn-tabla" onClick={cargarPesos}>
+          Reintentar
+        </button>
+      </div>
     )
   }
-  if (errorCarga) return <p className="adm-alerta adm-alerta-error" role="alert">{errorCarga}</p>
   if (!pesos) return <p className="adm-estado">Cargando parámetros…</p>
 
   return (

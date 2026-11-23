@@ -15,6 +15,7 @@
     "ver:ohlc": "node scripts/ver-ohlc.mjs"
   },
   "dependencies": {
+    "@microsoft/signalr": "^11.0.0",
     "axios": "^1.20.0",
     "lightweight-charts": "^5.2.1",
     "lucide-react": "^1.57.0",

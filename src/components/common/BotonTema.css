@@ -29,10 +29,3 @@ html[data-theme='dark'] .boton-tema {
   outline: 2px solid var(--color-azul-acero);
   outline-offset: 1px;
 }
-
-.tema-flotante {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 10;
-}

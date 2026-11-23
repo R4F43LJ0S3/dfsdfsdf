@@ -13,14 +13,12 @@ export const ENDPOINTS = {
   login: '/auth/login',
 
   // --- Usuarios (grupo "Usuarios") ---
-  // Todas exigen rol Administrador. Confirmadas contra el OpenAPI del servidor.
+  // Todas exigen rol Administrador. Confirmadas contra docs/api/openapi-v1.json.
   listarUsuarios: '/usuarios',
   registrarUsuario: '/usuarios/registrar',
   editarUsuario: (id) => `/usuarios/${id}`,
-  // DELETE es baja logica: deja el usuario en estado 'inactivo', no borra la fila.
+  // DELETE es baja lógica: deja el usuario en estado 'inactivo', no borra la fila.
   eliminarUsuario: (id) => `/usuarios/${id}`,
-  // El backend no publica catalogo de roles; se arma desde los usuarios + constants/roles.js
-  roles: null,
 
   // --- Entidades (grupo "Entidades") ---
   entidades: '/entidades',
@@ -34,20 +32,40 @@ export const ENDPOINTS = {
   ranking: '/ranking',
 
   // --- Parámetros e IC (grupo "Parametros" y "ConfiguracionIC") ---
-  sectores: null,
-  dimensiones: null,
-  periodos: null,
+  parametros: '/parametros',
   actualizarUmbral: '/parametros/actualizar-umbral',
   icConfiguracion: '/ic/configuracion',
   icVersiones: '/ic/configuracion/versiones',
 
-  // --- Cargas (subida de la matriz financiera CSV) ---
+  // --- Diccionario de Datos (grupo "Diccionario") ---
+  diccionario: '/diccionario',
+  diccionarioTermino: (codigo) => `/diccionario/${encodeURIComponent(codigo)}`,
+  diccionarioCargar: '/diccionario/cargar',
+
+  // --- Cargas y Matriz Cruda (grupo "Matriz") ---
   cargas: '/cargas',
+  matrizCruda: '/matriz-cruda',
 
   // --- Aprobaciones (flujo de aprobación de lotes) ---
   aprobaciones: '/aprobaciones',
   aprobarLote: (idLote) => `/aprobaciones/${idLote}/aprobar`,
   rechazarLote: (idLote) => `/aprobaciones/${idLote}/rechazar`,
+
+  // --- Auditoría y Exportación ---
+  auditoria: '/auditoria',
+  exportar: '/exportar',
+
+  // --- Notificaciones (grupo "Notificaciones") ---
+  notificacionesReglas: '/notificaciones/reglas',
+  notificacionesRegla: (idRegla) => `/notificaciones/reglas/${idRegla}`,
+  notificacionesTokens: '/notificaciones/tokens',
+  notificacionesToken: (token) => `/notificaciones/tokens/${encodeURIComponent(token)}`,
+  notificacionesEnvios: '/notificaciones/envios',
+  notificacionesEventos: '/notificaciones/eventos',
+
+  // --- Tiempo Real (SignalR Hub - HU-BE-04) ---
+  hubCotizaciones: '/hubs/cotizaciones',
+  emisionesPrueba: '/tiempo-real/emisiones-prueba',
 
   // --- Watchlist (favoritos y seguimiento personal - Solo Usuario móvil) ---
   watchlist: '/watchlist',

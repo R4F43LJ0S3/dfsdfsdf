@@ -1,16 +1,6 @@
 /* Fuente con serifa solo para el titulo grande */
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
 
-:root {
-  --azul-noche: #151D33;
-  --azul-acero: #264E7A;
-  --verde-alza: #24A460;
-  --verde-claro: #6CC48B;
-  --blanco-hueso: #F6F5F3;
-  --texto-gris: #5A6375;
-  --borde-input: #264E7A;
-}
-
 /* Pantalla completa con la foto de la oficina de fondo */
 .login-container {
   position: relative;
@@ -27,8 +17,10 @@
   font-family: var(--font-family);
   color-scheme: light;
 
-  /* El login siempre va en claro: se fijan los colores aqui
-     para que el modo oscuro del resto de la app no lo cambie */
+  /* El login siempre va en claro: tokens locales para aislarlo del tema global */
+  --azul-noche: #151D33;
+  --azul-acero: #264E7A;
+  --verde-alza: #24A460;
   --superficie: #FFFFFF;
   --blanco-hueso: #F6F5F3;
   --texto-gris: #5A6375;

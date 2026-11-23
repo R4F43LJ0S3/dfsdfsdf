@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getEntidades, getIndiceGeneral, getTop } from '../../services/api'
+import { getEntidades, getIndiceGeneral, getTop, limpiarCacheApi } from '../../services/api'
 import IndiceGeneral from './IndiceGeneral'
 import TopLista from './TopLista'
 import Variacion from '../common/Variacion'
@@ -9,14 +9,44 @@ import './Tablero.css'
 export default function Tablero() {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(false)
+  const [intento, setIntento] = useState(0)
 
   useEffect(() => {
+    let activo = true
     Promise.all([getIndiceGeneral(), getTop(), getEntidades()])
-      .then(([indice, top, entidades]) => setDatos({ indice, top, entidades }))
-      .catch(() => setError(true))
+      .then(([indice, top, entidades]) => {
+        if (!activo) return
+        setDatos({ indice, top, entidades })
+        setError(false)
+      })
+      .catch(() => {
+        if (!activo) return
+        setError(true)
+      })
+    return () => {
+      activo = false
+    }
+  }, [intento])
+
+  const reintentar = useCallback(() => {
+    limpiarCacheApi()
+    setError(false)
+    setDatos(null)
+    setIntento((n) => n + 1)
   }, [])
 
-  if (error) return <p role="alert" className="estado">No se pudo cargar el tablero. Intenta de nuevo.</p>
+  if (error) {
+    return (
+      <div className="tablero">
+        <div role="alert" className="tarjeta tablero-error-card">
+          <p>No se pudo cargar el tablero. Intenta de nuevo.</p>
+          <button type="button" className="tablero-retry-btn" onClick={reintentar}>
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
+  }
   if (!datos) return <p className="estado" aria-live="polite">Cargando tablero…</p>
 
   const { indice, top, entidades } = datos

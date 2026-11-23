@@ -265,8 +265,7 @@ export default function Comparador() {
             <TablaComparativa filas={filas} periodo={textoPeriodo} cargando={cargandoRanking} />
             {sinDimensiones && (
               <p className="cmp-nota" role="status">
-                El servidor aún no publica puntajes por dimensión para el periodo {textoPeriodo}; por eso esas
-                columnas aparecen con “—”.
+                El servicio de ranking no está disponible temporalmente; los puntajes por dimensión y la posición aparecen con “—”.
               </p>
             )}
           </section>

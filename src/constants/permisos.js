@@ -90,6 +90,13 @@ export const ROLES_GESTION_USUARIOS = [
   ROLES.ADMINISTRADOR,
 ]
 
+// Carga del Diccionario de Datos (POST /api/v1/diccionario/cargar)
+// Confirmado en docs/api/openapi-v1.json: solo Administrador y Data Steward (403 para el resto)
+export const ROLES_CARGA_DICCIONARIO = [
+  ROLES.ADMINISTRADOR,
+  ROLES.DATA_STEWARD,
+]
+
 // Auditoría y Bitácora
 export const ROLES_CONSULTA_AUDITORIA = [
   ROLES.ADMINISTRADOR,
@@ -116,12 +123,16 @@ export const puedeGestionarParametros = (usuario) => tieneRol(usuario, ROLES_ESC
 
 export const puedeLeerParametros = (usuario) => tieneRol(usuario, ROLES_LECTURA_PARAMETROS)
 
+// HU-FE-07 CA 2: Solo el Administrador puede entrar al módulo de Administración (/administracion)
+// Confirmado en docs/api/openapi-v1.json: /api/v1/usuarios/** y /api/v1/ic/configuracion/** exigen rol Administrador
 export const puedeAccederModuloAdministracion = (usuario) =>
-  puedeGestionarUsuarios(usuario) || puedeLeerParametros(usuario)
+  puedeGestionarUsuarios(usuario)
 
 export const puedeConsultarAprobaciones = (usuario) => tieneRol(usuario, ROLES_CONSULTA_APROBACIONES)
 
 export const puedeAprobarLotes = (usuario) => tieneRol(usuario, ROLES_DECISION_APROBACIONES)
+
+export const puedeCargarDiccionario = (usuario) => tieneRol(usuario, ROLES_CARGA_DICCIONARIO)
 
 /* ==========================================================================
    Sensibilidad del Dato en el Diccionario (HU-DD-08 / HU-FE-07 CA 1)
@@ -142,11 +153,11 @@ export const ETIQUETA_SENSIBILIDAD = Object.freeze({
 })
 
 const SENSIBILIDAD_POR_ROL = Object.freeze({
+  // En GET /api/v1/diccionario*, Restringido nunca se devuelve vía API a ningún rol (HU-DD-06).
   [ROLES.ADMINISTRADOR]: [
     NIVELES_SENSIBILIDAD.PUBLICO,
     NIVELES_SENSIBILIDAD.INTERNO,
     NIVELES_SENSIBILIDAD.CONFIDENCIAL,
-    NIVELES_SENSIBILIDAD.RESTRINGIDO,
   ],
   [ROLES.DATA_STEWARD]: [
     NIVELES_SENSIBILIDAD.PUBLICO,

@@ -1,12 +1,4 @@
-:root {
-  --azul-noche: #151D33;
-  --azul-acero: #264E7A;
-  --verde-alza: #24A460;
-  --rojo-bajada: #D9534F;
-  --blanco-hueso: #F6F5F3;
-  --texto-gris: #5A6375;
-  --borde-tarjeta: #E2E8F0;
-}
+/* HU-FE-02 / HU-FE-03: Gráfica Financiera OHLC y Ficha — Clean Financial Design (ALZA) */
 
 .grafica-wrapper {
   width: 100%;
@@ -254,6 +246,88 @@ html[data-theme='dark'] .grafica-period-btn.active {
   box-shadow: none;
 }
 
+/* Lienzo de gráfica y estados de carga/error */
+.grafica-lienzo {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grafica-lienzo.oculto {
+  display: none;
+}
+
+.grafica-lienzo-estado {
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px dashed rgba(0, 0, 0, 0.14);
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.grafica-lienzo-error {
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-bearish-border);
+  background-color: var(--color-bearish-bg);
+  color: var(--color-bearish);
+  padding: 24px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.grafica-lienzo-error p {
+  margin: 0;
+}
+
+.grafica-retry-btn {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: var(--superficie, #FFFFFF);
+  color: var(--color-text-on-light);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.grafica-retry-btn:hover {
+  background: #F1F3F5;
+  border-color: var(--color-azul-acero);
+}
+
+html[data-theme='dark'] .grafica-lienzo-estado {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme='dark'] .grafica-retry-btn {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+html[data-theme='dark'] .grafica-retry-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: #8DB8E8;
+}
+
+@media (max-width: 639px) {
+  .grafica-lienzo-estado,
+  .grafica-lienzo-error {
+    height: 270px;
+  }
+}
+
 /* ==========================================================================
    Tira OHLC Continua y Compacta (Data Ribbon)
    ========================================================================== */
@@ -267,9 +341,20 @@ html[data-theme='dark'] .grafica-period-btn.active {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 18px;
+  gap: 10px 14px;
   margin-top: 12px;
   box-sizing: border-box;
+}
+
+@media (min-width: 769px) {
+  .grafica-stat-card + .grafica-stat-card {
+    padding-left: 14px;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  html[data-theme='dark'] .grafica-stat-card + .grafica-stat-card {
+    border-left-color: rgba(255, 255, 255, 0.08);
+  }
 }
 
 html[data-theme='dark'] .grafica-cards-grid {
@@ -369,15 +454,54 @@ html[data-theme='dark'] .grafica-cards-grid {
   pointer-events: none !important;
 }
 
-/* Aviso cuando la serie del periodo no trae rango (apertura=máximo=mínimo=cierre) */
+/* Aviso compacto cuando el usuario elige Velas sobre serie plana (Diaria/Mensual) */
 .grafica-aviso-plana {
-  margin: 0 0 12px;
-  padding: 10px 14px;
-  border: 1px solid var(--color-border, #2D3958);
-  border-left: 3px solid var(--azul-acero, #264E7A);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px 12px;
   border-radius: 6px;
-  background: rgba(38, 78, 122, 0.08);
-  color: var(--color-text-muted, #A9B3CA);
-  font-size: 13px;
-  line-height: 1.5;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #F8F9FA;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.grafica-aviso-btn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(38, 78, 122, 0.28);
+  background: #FFFFFF;
+  color: var(--color-azul-acero);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.grafica-aviso-btn:hover {
+  background: rgba(38, 78, 122, 0.06);
+  border-color: var(--color-azul-acero);
+}
+
+html[data-theme='dark'] .grafica-aviso-plana {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .grafica-aviso-btn {
+  background: rgba(141, 184, 232, 0.10);
+  border-color: rgba(141, 184, 232, 0.25);
+  color: #8DB8E8;
+}
+
+html[data-theme='dark'] .grafica-aviso-btn:hover {
+  background: rgba(141, 184, 232, 0.18);
+  border-color: #8DB8E8;
 }

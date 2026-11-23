@@ -21,6 +21,13 @@
   flex-wrap: wrap;
 }
 
+.dic-encabezado-der {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .dic-encabezado h1 {
   margin: 0;
   font-size: clamp(1.30rem, 1.8vw, 1.55rem);
@@ -71,6 +78,73 @@
   flex-wrap: wrap;
 }
 
+.dic-btn-cargar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(58, 108, 168, 0.28);
+  background: var(--superficie, #ffffff);
+  color: var(--color-azul-acero);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.dic-btn-cargar:hover:not(:disabled) {
+  border-color: var(--color-azul-acero);
+  background: rgba(58, 108, 168, 0.06);
+}
+
+.dic-btn-cargar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Avisos compactos de resultado de carga CSV */
+.dic-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.dic-aviso-ok {
+  background: var(--color-bullish-bg);
+  border: 1px solid var(--color-bullish-border);
+  color: var(--color-bullish);
+}
+
+.dic-aviso-error {
+  background: var(--color-bearish-bg);
+  border: 1px solid var(--color-bearish-border);
+  color: var(--color-bearish);
+}
+
+.dic-aviso-cerrar {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dic-aviso-cerrar:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 /* Barra de herramientas: buscador (36px) + segmented control */
 .dic-controles {
   display: flex;
@@ -93,7 +167,7 @@
   height: 36px;
   padding: 0 10px;
   border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.10);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: var(--fondo, #F8F9FA);
 }
 
@@ -273,29 +347,6 @@
   overflow: hidden;
 }
 
-.dic-item-meta {
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
-.dic-item-formula {
-  font-family: var(--font-mono);
-  color: var(--color-text-on-light);
-  background: rgba(0, 0, 0, 0.03);
-  padding: 2px 6px;
-  border-radius: 4px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Chips y etiquetas */
 .dic-chip {
   display: inline-flex;
@@ -304,25 +355,23 @@
   height: 20px;
   padding: 0 7px;
   border-radius: 4px;
-  font-size: 0.68rem;
+  font-size: 0.70rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-.dic-tipo-métrica,
 .dic-tipo-metrica {
   background: rgba(58, 108, 168, 0.12);
   color: var(--color-azul-acero);
 }
 
-.dic-tipo-término,
 .dic-tipo-termino {
   background: rgba(39, 174, 96, 0.12);
   color: var(--color-bullish);
 }
 
-.dic-tipo-atributo {
+.dic-tipo-dato {
   background: rgba(242, 201, 76, 0.18);
   color: #9A6A06;
 }
@@ -355,9 +404,7 @@
   font-size: 0.74rem;
 }
 
-.dic-codigo,
-.dic-id,
-.dic-tecnico {
+.dic-codigo {
   font-size: 0.74rem;
   font-weight: 600;
   padding: 1px 6px;
@@ -371,7 +418,7 @@
   background: var(--superficie, #ffffff);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
-  padding: 28px 20px;
+  padding: 20px;
   text-align: center;
   color: var(--color-text-muted);
   display: flex;
@@ -387,6 +434,10 @@
 
 .dic-btn-primario,
 .dic-btn-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 36px;
   padding: 6px 14px;
   border-radius: 6px;
@@ -396,13 +447,18 @@
 }
 
 .dic-btn-primario {
-  border: 1px solid var(--color-azul-acero);
-  background: var(--color-azul-acero);
+  border: 1px solid var(--acero-fondo, #264E7A);
+  background: var(--acero-fondo, #264E7A);
   color: #ffffff;
 }
 
+.dic-btn-primario:hover {
+  border-color: var(--color-azul-acero-hover, #1E3D60);
+  background: var(--color-azul-acero-hover, #1E3D60);
+}
+
 .dic-btn-secundario {
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: var(--superficie, #ffffff);
   color: var(--color-text-on-light);
 }
@@ -425,7 +481,7 @@
   max-height: 88vh;
   overflow-y: auto;
   background: var(--superficie, #ffffff);
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   padding: 20px 24px;
   display: flex;
@@ -453,23 +509,25 @@
   flex-shrink: 0;
 }
 
+.dic-ficha-estado {
+  padding: 12px 0;
+  color: var(--color-text-muted);
+}
+
+.dic-ficha-error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--color-bearish-bg);
+  border: 1px solid var(--color-bearish-border);
+}
+
 .dic-ficha-titulo {
   margin: 0;
   font-size: 1.18rem;
   font-weight: 700;
-  color: var(--color-text-on-light);
-}
-
-.dic-ficha-tecnico {
-  margin: -4px 0 0;
-  font-size: 0.80rem;
-  color: var(--color-text-muted);
-}
-
-.dic-ficha-tecnico code {
-  background: rgba(0, 0, 0, 0.04);
-  padding: 2px 6px;
-  border-radius: 4px;
   color: var(--color-text-on-light);
 }
 
@@ -496,10 +554,6 @@
 }
 
 .dic-bloque {
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -510,6 +564,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
@@ -520,15 +575,14 @@
   font-family: var(--font-mono);
   font-size: 0.86rem;
   color: var(--color-azul-acero);
-  background: var(--superficie, #ffffff);
-  padding: 8px 10px;
+  background: var(--fondo, #F8F9FA);
+  padding: 10px 12px;
   border-radius: 6px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   word-break: break-word;
 }
 
-.dic-bloque-texto,
-.dic-bloque-nota {
+.dic-bloque-texto {
   margin: 0;
   font-size: 0.84rem;
   line-height: 1.45;
@@ -550,7 +604,7 @@
 }
 
 .dic-ficha-grid dt {
-  font-size: 0.68rem;
+  font-size: 0.70rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -564,42 +618,6 @@
   color: var(--color-text-on-light);
 }
 
-.dic-ficha-usado {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.80rem;
-  color: var(--color-text-muted);
-}
-
-.dic-ficha-relacionados {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.dic-relacionado-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(58, 108, 168, 0.28);
-  background: rgba(58, 108, 168, 0.08);
-  color: var(--color-azul-acero);
-  font-size: 0.76rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.dic-relacionado-btn:hover {
-  background: rgba(58, 108, 168, 0.16);
-}
-
 .dic-ficha-pie {
   display: flex;
   justify-content: flex-end;
@@ -609,6 +627,7 @@
 
 /* Modo oscuro */
 html[data-theme='dark'] .dic-acceso,
+html[data-theme='dark'] .dic-btn-cargar,
 html[data-theme='dark'] .dic-controles,
 html[data-theme='dark'] .dic-item,
 html[data-theme='dark'] .dic-sugerencia-btn,
@@ -617,9 +636,48 @@ html[data-theme='dark'] .dic-vacio {
   box-shadow: none;
 }
 
+html[data-theme='dark'] .dic-btn-cargar {
+  color: #8DB8E8;
+}
+
+html[data-theme='dark'] .dic-btn-cargar:hover:not(:disabled) {
+  border-color: #8DB8E8;
+  background: rgba(141, 184, 232, 0.08);
+}
+
+html[data-theme='dark'] .dic-btn-primario {
+  border-color: var(--acero-fondo, #264E7A);
+  background: var(--acero-fondo, #264E7A);
+  color: #ffffff;
+}
+
+html[data-theme='dark'] .dic-btn-primario:hover {
+  border-color: #1E3D60;
+  background: #1E3D60;
+}
+
+html[data-theme='dark'] .dic-btn-secundario {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .dic-ficha-cerrar {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .dic-buscador-limpiar:hover,
+html[data-theme='dark'] .dic-aviso-cerrar:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-on-light);
+}
+
 html[data-theme='dark'] .dic-buscador {
   background: #0E1424;
-  border-color: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .dic-buscador:focus-within {
+  border-color: var(--color-azul-acero);
+  background: var(--superficie);
 }
 
 html[data-theme='dark'] .dic-tipos {
@@ -632,26 +690,20 @@ html[data-theme='dark'] .dic-tipo-btn.activo {
   color: #F8FAFC;
 }
 
-html[data-theme='dark'] .dic-item-meta,
 html[data-theme='dark'] .dic-ficha-pie {
   border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 html[data-theme='dark'] .dic-codigo,
-html[data-theme='dark'] .dic-id,
-html[data-theme='dark'] .dic-tecnico,
-html[data-theme='dark'] .dic-chip-suave,
-html[data-theme='dark'] .dic-item-formula,
-html[data-theme='dark'] .dic-ficha-tecnico code {
+html[data-theme='dark'] .dic-chip-suave {
   background: rgba(255, 255, 255, 0.06);
 }
 
 html[data-theme='dark'] .dic-ficha {
   background: #151D33;
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-html[data-theme='dark'] .dic-bloque,
 html[data-theme='dark'] .dic-ficha-grid > div {
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.08);
@@ -664,7 +716,7 @@ html[data-theme='dark'] .dic-formula {
 }
 
 html[data-theme='dark'] .dic-sens-confidencial,
-html[data-theme='dark'] .dic-tipo-atributo {
+html[data-theme='dark'] .dic-tipo-dato {
   color: #F4CF7A;
 }
 
@@ -673,6 +725,9 @@ html[data-theme='dark'] .dic-tipo-atributo {
     padding: 12px;
   }
   .dic-item {
+    padding: 14px;
+  }
+  .dic-vacio {
     padding: 14px;
   }
   .dic-ficha {

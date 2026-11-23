@@ -17,22 +17,23 @@ export function num(valor, decimales = 1) {
   })
 }
 
-// Porcentaje de un valor que YA viene expresado en porcentaje.
-// Es el caso de variacionPct (DAT-46: "Cambio porcentual del cierre frente al anterior").
+// Porcentaje de un valor que YA viene expresado en porcentaje (ej. variacionPct).
 export function pct(valor, decimales = 2) {
-  const signo = valor > 0 ? '+' : ''
-  return `${signo}${num(valor, decimales)} %`
+  if (valor === null || valor === undefined || Number.isNaN(Number(valor))) return '—'
+
+  const factor = 10 ** decimales
+  const redondeado = Math.round(Number(valor) * factor) / factor
+  const signo = redondeado > 0 ? '+' : ''
+  return `${signo}${num(redondeado, decimales)} %`
 }
 
 // Porcentaje de un valor que viene como PROPORCIÓN (0.0634 -> "6,34 %").
-// Es el caso del valor de las métricas (DAT-39: "Se guarda como proporción").
 export function pctProporcion(valor, decimales = 2) {
   if (valor === null || valor === undefined || Number.isNaN(Number(valor))) return '—'
   return `${num(Number(valor) * 100, decimales)} %`
 }
 
-// Valor de una métrica formateado según su unidad del diccionario de datos.
-// Sin unidad conocida se muestra el número crudo, sin inventarle sufijo.
+// Valor de una métrica formateado según su unidad oficial del diccionario de datos.
 export function valorMetrica(metrica) {
   const valor = metrica?.valor
   if (valor === null || valor === undefined || Number.isNaN(Number(valor))) return '—'
@@ -50,5 +51,7 @@ export function valorMetrica(metrica) {
 }
 
 export function fechaIso(texto) {
-  return texto ? texto.split('-').reverse().join('/') : ''
+  if (!texto) return ''
+  const iso = String(texto).slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('/') : String(texto)
 }

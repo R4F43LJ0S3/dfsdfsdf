@@ -1,191 +1,166 @@
-// HU-DD-08: Servicio del Diccionario de Datos y Glosario Oficial SIFTC
-// Fuente oficial: exportación validada del equipo de Diccionario de Datos (src/data/diccionario_glosario_busqueda.csv)
-// Filtrado estricto por rol y clasificación de sensibilidad del dato (HU-FE-07 CA 1).
+// HU-DD-08 / HU-FE-07 CA 1: Servicio del Diccionario de Datos 100 % contra la API real SIFTC.
+// Endpoints oficiales (docs/api/openapi-v1.json):
+//   GET  /api/v1/diccionario?buscar=...&tipo=metrica|termino|dato
+//   GET  /api/v1/diccionario/{codigo}
+//   POST /api/v1/diccionario/cargar
 
-import csvOficial from '../data/diccionario_glosario_busqueda.csv?raw'
-import { puedeVerSensibilidad, normalizarSensibilidad } from '../constants/permisos'
-import { claveComparacion as sinTildes } from '../utils/texto'
+import { http, conReintentoDeArranque, limpiarCacheApi } from './api'
+import { ENDPOINTS } from './endpoints'
+import { normalizarSensibilidad } from '../constants/permisos'
+import { claveComparacion } from '../utils/texto'
+
+export const LIMITE_RESULTADOS_API = 20
+const BUSCAR_CATALOGO_INICIAL = 'a'
 
 export const TIPOS_ENTRADA = Object.freeze([
   { id: 'todos', etiqueta: 'Todos' },
-  { id: 'Métrica', etiqueta: 'Métricas' },
-  { id: 'Término', etiqueta: 'Términos' },
-  { id: 'Atributo', etiqueta: 'Datos y campos' },
+  { id: 'metrica', etiqueta: 'Métricas' },
+  { id: 'termino', etiqueta: 'Términos' },
+  { id: 'dato', etiqueta: 'Datos y campos' },
 ])
 
-let catalogoCache = null
+export const ETIQUETA_TIPO = Object.freeze({
+  metrica: 'Métrica',
+  termino: 'Término',
+  dato: 'Dato',
+})
 
-function partirLineaCsv(linea, sep = ';') {
-  const campos = []
-  let actual = ''
-  let enComillas = false
-
-  for (let i = 0; i < linea.length; i += 1) {
-    const c = linea[i]
-    if (c === '"') {
-      if (enComillas && linea[i + 1] === '"') {
-        actual += '"'
-        i += 1
-      } else {
-        enComillas = !enComillas
-      }
-    } else if (c === sep && !enComillas) {
-      campos.push(actual.trim())
-      actual = ''
-    } else {
-      actual += c
-    }
-  }
-  campos.push(actual.trim())
-  return campos
+/** Normaliza variantes de tipo (UI, URL o API) al catálogo aceptado por el backend. */
+export function normalizarTipoApi(valor) {
+  const limpio = claveComparacion(valor)
+  if (limpio === 'metrica' || limpio === 'metricas') return 'metrica'
+  if (limpio === 'termino' || limpio === 'terminos') return 'termino'
+  if (limpio === 'dato' || limpio === 'datos' || limpio === 'atributo') return 'dato'
+  return ''
 }
 
-function partirLista(texto) {
-  if (!texto) return []
-  return String(texto)
-    .split(/[,;|]/)
-    .map((s) => s.trim())
-    .filter(Boolean)
+/** Devuelve la etiqueta legible en español para un tipo de entrada del diccionario. */
+export function etiquetaTipoEntrada(tipo) {
+  const clave = normalizarTipoApi(tipo)
+  if (clave && ETIQUETA_TIPO[clave]) return ETIQUETA_TIPO[clave]
+  const texto = String(tipo ?? '').trim()
+  return texto || 'Término'
 }
 
-function normalizarTermino(Crudo) {
-  const id = Crudo.id || Crudo.codigo || Crudo.nombre
-  const clasificacion = Crudo.clasificacion || 'Público'
-  const sinonimos = Array.isArray(Crudo.sinonimos) ? Crudo.sinonimos : partirLista(Crudo.sinonimos)
-  const relacionados = Array.isArray(Crudo.terminos_relacionados)
-    ? Crudo.terminos_relacionados
-    : partirLista(Crudo.terminos_relacionados)
-
-  const indiceBusqueda = sinTildes(
-    [
-      Crudo.id,
-      Crudo.codigo,
-      Crudo.nombre,
-      Crudo.nombre_tecnico,
-      Crudo.descripcion,
-      sinonimos.join(' '),
-      Crudo.variables,
-      Crudo.usado_en,
-      Crudo.equipo_dueno,
-    ]
-      .filter(Boolean)
-      .join(' '),
+/** Indica si el error corresponde a una petición abortada intencionalmente. */
+export function esErrorCancelacion(err) {
+  return Boolean(
+    err?.code === 'ERR_CANCELED' ||
+      err?.name === 'CanceledError' ||
+      err?.name === 'AbortError',
   )
+}
+
+function normalizarResultado(dto) {
+  const tipo =
+    normalizarTipoApi(dto?.tipo) ||
+    String(dto?.tipo ?? '').trim().toLowerCase() ||
+    'termino'
 
   return {
-    id: String(id ?? '').trim(),
-    tipo: String(Crudo.tipo || 'Término').trim(),
-    codigo: String(Crudo.codigo ?? '').trim(),
-    nombre: String(Crudo.nombre ?? '').trim(),
-    nombreTecnico: String(Crudo.nombre_tecnico ?? '').trim(),
-    descripcion: String(Crudo.descripcion ?? '').trim(),
+    codigo: String(dto?.codigo ?? '').trim(),
+    tipo,
+    tipoEtiqueta: etiquetaTipoEntrada(tipo),
+    nombre: String(dto?.nombre ?? '').trim(),
+    definicion: String(dto?.definicion ?? '').trim(),
+  }
+}
+
+function normalizarFicha(dto) {
+  if (!dto || typeof dto !== 'object') return null
+
+  const tipo =
+    normalizarTipoApi(dto.tipo) ||
+    String(dto.tipo ?? '').trim().toLowerCase() ||
+    'termino'
+  const clasificacion = String(dto.clasificacion ?? 'Público').trim()
+  const formulaLimpia =
+    dto.formula === null || dto.formula === undefined ? '' : String(dto.formula).trim()
+  const unidadLimpia =
+    dto.unidad === null || dto.unidad === undefined ? '' : String(dto.unidad).trim()
+  const sinonimos = Array.isArray(dto.sinonimos)
+    ? dto.sinonimos.map((s) => String(s ?? '').trim()).filter(Boolean)
+    : []
+
+  return {
+    codigo: String(dto.codigo ?? '').trim(),
+    tipo,
+    tipoEtiqueta: etiquetaTipoEntrada(tipo),
+    nombre: String(dto.nombre ?? '').trim(),
+    definicion: String(dto.definicion ?? '').trim(),
+    formula: formulaLimpia || null,
+    unidad: unidadLimpia || null,
     sinonimos,
-    formula: String(Crudo.formula ?? '').trim(),
-    variables: String(Crudo.variables ?? '').trim(),
-    unidad: String(Crudo.unidad ?? '').trim(),
-    frecuencia: String(Crudo.frecuencia ?? '').trim(),
-    umbrales: String(Crudo.umbrales ?? '').trim(),
-    ejemplo: String(Crudo.ejemplo ?? '').trim(),
-    relacionados,
-    clasificacion: String(clasificacion).trim(),
+    clasificacion,
     nivelSensibilidad: normalizarSensibilidad(clasificacion),
-    equipoDueno: String(Crudo.equipo_dueno ?? '').trim(),
-    usadoEn: String(Crudo.usado_en ?? '').trim(),
-    estado: String(Crudo.estado ?? '').trim(),
-    _busqueda: indiceBusqueda,
   }
 }
 
-export function cargarCatalogoLocal() {
-  if (catalogoCache) return catalogoCache
-  const lineas = String(csvOficial ?? '')
-    .replace(/^\uFEFF/, '')
-    .split(/\r?\n/)
-    .filter((l) => l.trim().length > 0)
-
-  if (lineas.length < 2) {
-    catalogoCache = []
-    return catalogoCache
+/**
+ * Carga inicial automática del diccionario (`GET /api/v1/diccionario?buscar=a`).
+ * Evita HTTP 422 (`diccionario.buscar.required`) cuando el buscador está vacío.
+ */
+export async function obtenerCatalogoInicialDiccionario({ tipo = 'todos', signal } = {}) {
+  const params = { buscar: BUSCAR_CATALOGO_INICIAL }
+  const tipoApi = tipo && tipo !== 'todos' ? normalizarTipoApi(tipo) : ''
+  if (tipoApi) {
+    params.tipo = tipoApi
   }
 
-  const encabezados = partirLineaCsv(lineas[0]).map((h) => sinTildes(h).replace(/\s+/g, '_'))
-  const filas = []
+  const res = await conReintentoDeArranque(() => http.get(ENDPOINTS.diccionario, { params, signal }))
+  return Array.isArray(res.data) ? res.data.map(normalizarResultado) : []
+}
 
-  for (let i = 1; i < lineas.length; i += 1) {
-    const valores = partirLineaCsv(lineas[i])
-    if (valores.length < 2) continue
-    const obj = {}
-    encabezados.forEach((clave, idx) => {
-      obj[clave] = valores[idx] ?? ''
-    })
-    const termino = normalizarTermino(obj)
-    if (termino.nombre) filas.push(termino)
+/**
+ * Busca términos en el servidor (`GET /api/v1/diccionario`).
+ * Si `buscar` está vacío devuelve [] sin consultar para evitar HTTP 422 (`diccionario.buscar.required`).
+ */
+export async function buscarDiccionario({ buscar = '', tipo = 'todos', signal } = {}) {
+  const consulta = String(buscar ?? '').trim()
+  if (!consulta) return []
+
+  const params = { buscar: consulta }
+  const tipoApi = tipo && tipo !== 'todos' ? normalizarTipoApi(tipo) : ''
+  if (tipoApi) {
+    params.tipo = tipoApi
   }
 
-  catalogoCache = filas
-  return catalogoCache
+  const res = await conReintentoDeArranque(() => http.get(ENDPOINTS.diccionario, { params, signal }))
+  return Array.isArray(res.data) ? res.data.map(normalizarResultado) : []
 }
 
-function puntajeCoincidencia(termino, consultaLimpia) {
-  if (!consultaLimpia) return 1
-  const nombre = sinTildes(termino.nombre)
-  const codigo = sinTildes(termino.codigo)
-  const id = sinTildes(termino.id)
-  const tecnico = sinTildes(termino.nombreTecnico)
-  const sinonimos = termino.sinonimos.map(sinTildes)
-
-  if (codigo && codigo === consultaLimpia) return 100
-  if (id && id === consultaLimpia) return 95
-  if (nombre === consultaLimpia || tecnico === consultaLimpia) return 90
-  if (codigo && codigo.startsWith(consultaLimpia)) return 85
-  if (nombre.startsWith(consultaLimpia)) return 80
-  if (sinonimos.some((s) => s === consultaLimpia || s.startsWith(consultaLimpia))) return 75
-  if (nombre.includes(consultaLimpia) || tecnico.includes(consultaLimpia)) return 65
-  if (sinonimos.some((s) => s.includes(consultaLimpia))) return 55
-
-  const palabras = consultaLimpia.split(/\s+/).filter(Boolean)
-  if (palabras.length > 0 && palabras.every((p) => termino._busqueda.includes(p))) return 40
-
-  return 0
-}
-
-export function buscarEnLista(terminos, { q = '', tipo = 'todos', usuario = null } = {}) {
-  const consulta = sinTildes(q)
-  const tipoFiltro = tipo && tipo !== 'todos' ? sinTildes(tipo) : null
-
-  return terminos
-    .filter((t) => puedeVerSensibilidad(usuario, t.clasificacion))
-    .filter((t) => (!tipoFiltro ? true : sinTildes(t.tipo) === tipoFiltro))
-    .map((t) => ({ termino: t, puntaje: puntajeCoincidencia(t, consulta) }))
-    .filter((item) => item.puntaje > 0)
-    .sort((a, b) => b.puntaje - a.puntaje || a.termino.nombre.localeCompare(b.termino.nombre, 'es'))
-    .map((item) => item.termino)
-}
-
-export async function buscarTerminos({ q = '', tipo = 'todos', usuario = null } = {}) {
-  const base = cargarCatalogoLocal()
-  const resultados = buscarEnLista(base, { q, tipo, usuario })
-  const totalVisible = base.filter((t) => puedeVerSensibilidad(usuario, t.clasificacion)).length
-
-  return {
-    items: resultados,
-    totalVisible,
-    totalCatalogo: base.length,
+/**
+ * Obtiene la ficha individual desde el servidor (`GET /api/v1/diccionario/{codigo}`).
+ * Ante 404 propaga el error RFC 9457 (código inexistente o restringido por RBAC anti-enumeración).
+ */
+export async function obtenerFichaDiccionario(codigo, { signal } = {}) {
+  const codigoLimpio = String(codigo ?? '').trim()
+  if (!codigoLimpio) {
+    throw new Error('Código de término inválido o vacío.')
   }
-}
 
-export function encontrarTermino(referencia, usuario = null) {
-  if (!referencia) return null
-  const buscado = sinTildes(referencia)
-  const base = cargarCatalogoLocal().filter((t) => puedeVerSensibilidad(usuario, t.clasificacion))
-
-  return (
-    base.find((t) => sinTildes(t.id) === buscado) ||
-    base.find((t) => t.codigo && sinTildes(t.codigo) === buscado) ||
-    base.find((t) => sinTildes(t.nombre) === buscado) ||
-    base.find((t) => t.nombreTecnico && sinTildes(t.nombreTecnico) === buscado) ||
-    base.find((t) => t.sinonimos.some((s) => sinTildes(s) === buscado)) ||
-    base.find((t) => sinTildes(t.nombre).startsWith(buscado)) ||
-    null
+  const res = await conReintentoDeArranque(() =>
+    http.get(ENDPOINTS.diccionarioTermino(codigoLimpio), { signal }),
   )
+  return normalizarFicha(res.data)
+}
+
+/**
+ * Sube `diccionario.csv` mediante multipart/form-data (`POST /api/v1/diccionario/cargar`).
+ * Roles autorizados en servidor: Administrador y Data Steward (HTTP 403 para el resto).
+ */
+export async function cargarCsvDiccionario(archivo) {
+  if (!archivo) {
+    throw new Error('Selecciona un archivo CSV válido antes de cargar.')
+  }
+
+  const formData = new FormData()
+  formData.append('file', archivo)
+
+  // Anular el Content-Type JSON por defecto de `http` para que el navegador genere el boundary multipart.
+  const res = await http.post(ENDPOINTS.diccionarioCargar, formData, {
+    headers: { 'Content-Type': undefined },
+  })
+  limpiarCacheApi()
+  return { registros: Number(res.data?.registros ?? 0) }
 }

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { AlertCircle, Info } from 'lucide-react'
-import { num, valorMetrica } from '../../utils/format'
+import { num, valorMetrica, fechaIso } from '../../utils/format'
 
 const ORDEN_DIMENSIONES_PREFERIDO = [
   'Rentabilidad',
@@ -32,13 +32,17 @@ export default function MetricasPorDimension({
       return { agrupadas: [], totalUnicas: 0 }
     }
 
-    // Deduplicar por codigoMetrica (o nombreMetrica si no hay código) conservando la fecha más reciente
+    // Deduplicar por código/nombre normalizado conservando exclusivamente la fecha de corte más reciente
     const porCodigo = new Map()
     for (const m of metricas) {
-      const clave = m.codigoMetrica || m.nombreMetrica || ''
+      const clave = String(m.codigoMetrica || m.nombreMetrica || '')
+        .trim()
+        .toUpperCase()
       if (!clave) continue
       const previa = porCodigo.get(clave)
-      if (!previa || String(m.fecha ?? '') > String(previa.fecha ?? '')) {
+      const fechaActual = String(m.fecha ?? '').slice(0, 10)
+      const fechaPrevia = String(previa?.fecha ?? '').slice(0, 10)
+      if (!previa || fechaActual >= fechaPrevia) {
         porCodigo.set(clave, m)
       }
     }
@@ -187,6 +191,11 @@ export default function MetricasPorDimension({
                         <span className="ficha-metrica-tag-codigo mono-num">
                           {m.codigoMetrica}
                         </span>
+                        {m.fecha && (
+                          <span className="ficha-metrica-tag-frecuencia mono-num">
+                            {fechaIso(String(m.fecha).slice(0, 10))}
+                          </span>
+                        )}
                       </div>
                       <span className="ficha-metrica-indicador-accion" aria-hidden="true">
                         →

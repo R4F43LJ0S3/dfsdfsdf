@@ -1,16 +1,5 @@
-// Unidad de medida de cada métrica del catálogo oficial.
-//
-// Fuente: DICCIONARIO_DATOS_FRONTEND.md (columna "Unidad") y DAT-50 del glosario
-// del diccionario de datos ("unidad_metrica": proporción, veces o puntos del IC).
-//
-// Por qué existe esta tabla: el contrato del servicio (docs/api/openapi-v1.json,
-// esquema MetricaDto) NO expone la unidad; solo manda "valor" descrito como
-// "proporción o veces, según la métrica". Sin la unidad, el frontend no puede saber
-// si 0.0634 es 6,34 % o 0,06 veces.
-//
-// Cómo retirarla: cuando el backend agregue "unidad" a MetricaDto, o cuando se
-// consuma GET /api/v1/diccionario/{codigo} (DiccionarioFichaDto.unidad), esa unidad
-// se usa automáticamente — unidadDeMetrica() ya le da prioridad sobre esta tabla.
+// Unidad de medida de cada métrica del catálogo oficial SIFTC.
+// Fuente: Diccionario de Datos (src/data/diccionario_glosario_busqueda.csv) y contrato OpenAPI (MetricaDto).
 
 export const UNIDADES = Object.freeze({
   PROPORCION: 'proporcion', // se guarda como 0.12 y se muestra como 12,00 %
@@ -19,7 +8,7 @@ export const UNIDADES = Object.freeze({
   DESCONOCIDA: 'desconocida',
 })
 
-// Catálogo oficial de métricas del IC (DICCIONARIO_DATOS_FRONTEND.md, sección 2)
+// Catálogo oficial de métricas del IC
 const UNIDAD_POR_CODIGO = Object.freeze({
   'RNT-01': UNIDADES.PROPORCION, // ROE
   'RNT-02': UNIDADES.PROPORCION, // ROA
@@ -33,11 +22,10 @@ const UNIDAD_POR_CODIGO = Object.freeze({
   'CAL-01': UNIDADES.PROPORCION, // Índice de calidad del dato
 })
 
-// Acepta lo que mande el diccionario o el backend en texto libre y lo lleva al catálogo.
 function normalizarUnidad(texto) {
   const limpio = String(texto ?? '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase()
 
@@ -50,7 +38,6 @@ function normalizarUnidad(texto) {
   return null
 }
 
-// Unidad de una métrica. Si el servicio alguna vez manda la unidad, esa gana.
 export function unidadDeMetrica(metrica) {
   if (!metrica) return UNIDADES.DESCONOCIDA
 

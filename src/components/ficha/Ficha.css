@@ -50,12 +50,6 @@
   letter-spacing: -0.01em;
 }
 
-.ficha-metricas-subtitulo {
-  font-size: 0.8rem;
-  color: var(--color-text-muted, #5A6379);
-  margin: 2px 0 0;
-}
-
 .ficha-metricas-total-badge {
   padding: 2px 8px;
   border-radius: 4px;
@@ -224,7 +218,7 @@
   text-transform: uppercase;
 }
 
-.ficha-metrica-tag-frec {
+.ficha-metrica-tag-frecuencia {
   font-size: 0.68rem;
   font-weight: 500;
   color: var(--color-text-muted, #5A6379);
@@ -273,14 +267,6 @@
 .ficha-metrica-card-dato-derecha {
   text-align: right;
   align-items: flex-end;
-}
-
-.ficha-metrica-card-label {
-  font-size: 0.70rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted, #5A6379);
 }
 
 .ficha-metrica-card-val {
@@ -507,11 +493,15 @@
 
 .ficha-modal-acciones {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-top: 4px;
 }
 
 .ficha-modal-btn-cerrar {
+  margin-left: auto;
   min-height: 34px;
   padding: 0 16px;
   border-radius: 6px;

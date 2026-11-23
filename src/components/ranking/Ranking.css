@@ -1,5 +1,5 @@
 .ranking { display: flex; flex-direction: column; gap: 20px; }
-.titulo-pagina { font-size: 1.6rem; font-weight: 700; color: var(--color-text-on-light); letter-spacing: -0.02em; }
+.titulo-pagina { font-size: clamp(1.30rem, 1.8vw, 1.55rem); font-weight: 700; color: var(--color-text-on-light); letter-spacing: -0.02em; }
 .texto-suave { color: var(--color-text-muted); font-size: .85rem; }
 .estado { padding: 24px; color: var(--color-text-muted); }
 .tarjeta {
@@ -50,7 +50,6 @@
 }
 .boton-limpiar:hover:not(:disabled) { background: #F1F3F5; color: var(--color-text-on-light); }
 .boton-limpiar:disabled { opacity: .4; cursor: default; }
-.url { font-family: var(--font-mono); background: var(--color-blanco-hueso); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px 8px; word-break: break-all; }
 
 .tabla-tarjeta {
   padding: 0;
@@ -136,6 +135,21 @@
 .cambio-baja { color: #B83232; background: #FBE8E6; }
 .cambio-igual { color: var(--color-text-muted); background: #F1F3F5; }
 .estado-error { color: #B83232; }
+.ranking-error-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-radius: 8px;
+}
+.ranking-error-texto {
+  margin: 0;
+  color: var(--color-bearish, #B83232);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
 .tabla tbody tr { transition: background-color 0.12s ease; }
 .tabla tbody tr:hover { background-color: rgba(0, 0, 0, 0.02); }
 .solo-lector { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -180,16 +194,4 @@ html[data-theme='dark'] .cambio-igual {
   .tabla-tarjeta { padding: 0; }
   .titulo-pagina { font-size: 1.35rem; }
   .boton-limpiar { width: 100%; }
-}
-
-/* Aviso de ranking reconstruido en el cliente porque el servidor no respondió */
-.estado-aviso {
-  border: 1px solid var(--color-border, #2D3958);
-  border-left: 3px solid #D9A441;
-  border-radius: 6px;
-  background: rgba(217, 164, 65, 0.1);
-  color: var(--color-text-muted, #A9B3CA);
-  padding: 10px 14px;
-  font-size: 13px;
-  line-height: 1.5;
 }

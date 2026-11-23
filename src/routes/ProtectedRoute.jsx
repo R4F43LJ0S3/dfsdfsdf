@@ -1,4 +1,5 @@
 import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { ShieldAlert } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { tieneRol } from '../constants/roles'
 
@@ -15,11 +16,18 @@ export default function ProtectedRoute({ rolesPermitidos, rol }) {
 
   if (permitidos && permitidos.length > 0 && !tieneRol(usuario, permitidos)) {
     return (
-      <div role="alert" style={{ padding: '40px', textAlign: 'center' }}>
+      <section className="acceso-restringido-card" role="alert">
+        <div className="acceso-restringido-icono" aria-hidden="true">
+          <ShieldAlert size={22} />
+        </div>
         <h2>Acceso restringido</h2>
-        <p>Tu rol ({usuario.rol}) no tiene autorización para acceder a esta sección.</p>
-        <p><Link to="/dashboard" style={{ fontWeight: 600, textDecoration: 'underline' }}>Volver al tablero</Link></p>
-      </div>
+        <p>
+          Tu perfil actual ({usuario.rol}) no tiene permisos para acceder a este recurso.
+        </p>
+        <Link to="/dashboard" className="acceso-restringido-btn">
+          Volver al tablero
+        </Link>
+      </section>
     )
   }
 

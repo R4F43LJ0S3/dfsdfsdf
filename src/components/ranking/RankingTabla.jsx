@@ -95,8 +95,12 @@ export default function RankingTabla({
                   </>
                 )}
                 <td>
-                  <Link to={`/grafica?entidad=${f.entidadId}${periodoId ? `&periodo=${periodoId}` : ''}`} className="entidad">
+                  <Link
+                    to={`/grafica?entidad=${f.codigo || f.entidadId}${periodoId ? `&periodo=${periodoId}` : ''}`}
+                    className="entidad"
+                  >
                     <strong>{f.entidad}</strong>
+                    {f.codigo && <small>{f.codigo}</small>}
                   </Link>
                 </td>
                 <td><span className="sector">{f.sector}</span></td>

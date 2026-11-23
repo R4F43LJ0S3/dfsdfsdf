@@ -18,32 +18,48 @@ export const ROLES_LISTA = [
   ROLES.USUARIO_MOVIL,
 ]
 
-// Mapa de alias para mantener compatibilidad bidireccional
+function claveRol(texto) {
+  return String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+// Mapa de alias insensible a tildes, guiones y mayúsculas
 const ALIAS_ROLES = {
   administrador: ROLES.ADMINISTRADOR,
   admin: ROLES.ADMINISTRADOR,
   'data steward': ROLES.DATA_STEWARD,
   datasteward: ROLES.DATA_STEWARD,
+  steward: ROLES.DATA_STEWARD,
   analista: ROLES.ANALISTA,
   'analista financiero': ROLES.ANALISTA,
+  analistafinanciero: ROLES.ANALISTA,
   gerente: ROLES.GERENTE,
+  directivo: ROLES.GERENTE,
   'gerente / directivo': ROLES.GERENTE,
+  'gerente/directivo': ROLES.GERENTE,
+  'gerente directivo': ROLES.GERENTE,
   gerencia: ROLES.GERENTE,
   auditor: ROLES.AUDITOR,
   auditoria: ROLES.AUDITOR,
-  'usuario móvil': ROLES.USUARIO_MOVIL,
   'usuario movil': ROLES.USUARIO_MOVIL,
+  usuariomovil: ROLES.USUARIO_MOVIL,
+  movil: ROLES.USUARIO_MOVIL,
   'usuario de consulta': ROLES.USUARIO_MOVIL,
   consulta: ROLES.USUARIO_MOVIL,
 }
 
 export const normalizarNombreRol = (rol) => {
   const limpio = String(rol ?? '').normalize('NFC').trim()
-  const clave = limpio.toLowerCase()
+  const clave = claveRol(limpio)
   return ALIAS_ROLES[clave] ?? limpio
 }
 
-// Comparación exacta normalizada en UTF-8 NFC (estándar OWASP de control de acceso basado en roles)
+// Comparación exacta normalizada (estándar OWASP de control de acceso basado en roles)
 export const tieneRol = (usuario, rolesPermitidos) => {
   if (!usuario || !usuario.rol) return false
   if (!rolesPermitidos || rolesPermitidos.length === 0) return true
@@ -51,8 +67,8 @@ export const tieneRol = (usuario, rolesPermitidos) => {
   return rolesPermitidos.some((r) => normalizarNombreRol(r) === rolActual)
 }
 
-// Id de cada rol en la base de datos (tabla seguridad.roles).
-// Catálogo oficial según HU-FE-07 Sprint 4 CA 1
+// Id base de cada rol en la base de datos (tabla seguridad.roles).
+// Se actualiza dinámicamente en memoria con catalogoRolesDesde(usuarios) al consultar GET /api/v1/usuarios.
 export const ROLES_CATALOGO = Object.freeze([
   { id: '00000000-0000-0000-0000-000000000001', nombre: ROLES.ADMINISTRADOR, descripcion: 'Control total del sistema' },
   { id: '00000000-0000-0000-0000-000000000002', nombre: ROLES.ANALISTA, descripcion: 'Calcula, valida y publica métricas' },
